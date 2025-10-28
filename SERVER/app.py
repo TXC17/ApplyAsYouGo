@@ -22,15 +22,12 @@ def create_app():
     app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-    cors_options = {
-        "origins": ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
-        "supports_credentials": True
-    }
-
+    # Get allowed origins from environment variable or use localhost for development
+    allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000').split(',')
+    
     CORS(app, 
          resources={r"/*": {
-             "origins": ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001"],
+             "origins": allowed_origins,
              "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
              "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
          }}, 
@@ -51,6 +48,6 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    # Production settings
-    debug_mode = os.environ.get('FLASK_ENV') == 'development'
+    # Development settings for college project
+    debug_mode = os.environ.get('FLASK_ENV', 'development') == 'development'
     app.run(debug=debug_mode, host='0.0.0.0', port=5000)

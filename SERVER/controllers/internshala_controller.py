@@ -7,7 +7,21 @@ class InternshalaController:
         self.model = InternshalaInternshipModel()
 
     def trigger_scrape_internships(self, filters):
-        return self.scraper.scrape_internships(filters)
+        try:
+            result = self.scraper.scrape_internships(filters)
+            count = result.get('count', 0)
+            
+            return {
+                'success': count > 0,
+                'message': result.get('message', f'Scraped {count} internships'),
+                'count': count
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Scraping error: {str(e)}',
+                'count': 0
+            }
 
     def get_all_internships(self, filters):
         internships, total = self.model.find_internships(filters)

@@ -39,39 +39,38 @@ def api_get_linkedin_internship(internship_id):
 
 @linkedin_bp.route('/scrape', methods=['POST'])
 def api_scrape_linkedin_internships():
-    """API endpoint to trigger LinkedIn internship scraping with timeout handling"""
+    """API endpoint to trigger LinkedIn internship scraping"""
     data = request.json or {}
     
     filters = {
-        'category': data.get('category', 'full-stack-development'),
+        'category': data.get('category', 'internship'),
         'usertype': data.get('usertype', 'fresher'),
         'passing_year': data.get('passing_year', '2027'),
         'quick_apply': data.get('quick_apply', True)
     }
 
     try:
-        # Start scraping with a reasonable timeout
         result = controller.trigger_scrape_internships(filters)
         
-        # If scraping is successful, return the result
-        if result.get('success'):
-            return jsonify(result)
-        else:
-            # Return a partial success response for timeout scenarios
+        if result.get('count', 0) > 0:
             return jsonify({
                 'success': True,
-                'message': 'Scraping initiated successfully. Large datasets may take time to process.',
-                'status': 'processing'
+                'message': result.get('message', 'Scraping completed successfully'),
+                'count': result.get('count', 0)
             })
+        else:
+            return jsonify({
+                'success': False,
+                'message': result.get('message', 'No internships found'),
+                'count': 0
+            }), 400
             
     except Exception as e:
-        # Handle timeout and other errors gracefully
         return jsonify({
-            'success': True,
-            'message': 'Scraping request received. Processing may take time due to data size.',
-            'status': 'processing',
-            'note': 'For large datasets, scraping may take several minutes to complete.'
-        })
+            'success': False,
+            'message': f'Scraping failed: {str(e)}',
+            'count': 0
+        }), 500
 
 @linkedin_bp.route('/statistics', methods=['GET'])
 def api_linkedin_statistics():

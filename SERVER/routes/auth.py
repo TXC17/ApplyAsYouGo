@@ -15,6 +15,7 @@ auth_blueprint = Blueprint('auth', __name__)
 
 # Load from .env
 JWT_SECRET = os.getenv("JWT_SECRET", "5caba265540278dd7885f6b6950c4904")
+
 JWT_ALGORITHM = 'HS256'
 
 @auth_blueprint.route('/signup', methods=['POST'])
@@ -329,18 +330,31 @@ def save_preferences():
         print(f"Save preferences error: {str(e)}")
         return jsonify({'message': 'Internal server error'}), 500
 
-@auth_blueprint.route('/test-auth', methods=['GET'])
+
+
+@auth_blueprint.route('/applications', methods=['GET'])
 @jwt_required
-def test_auth():
-    """Simple test endpoint to verify JWT middleware"""
+def get_user_applications():
+    """Get user's internship applications"""
     try:
         user_data = g.user
+        db = get_db_connection()
+        applications_collection = db.internship_applications
+        
+        # Fetch user applications
+        applications = list(applications_collection.find(
+            {'user_email': user_data['email']},
+            {'_id': 0}  # Exclude MongoDB _id field
+        ).sort('applied_date', -1))  # Sort by most recent first
+        
         return jsonify({
-            'message': 'Authentication successful',
-            'user': user_data
+            'applications': applications,
+            'count': len(applications)
         }), 200
+        
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Get applications error: {str(e)}")
+        return jsonify({'applications': [], 'count': 0}), 200
 
 @auth_blueprint.route('/delete', methods=['DELETE'])
 @jwt_required

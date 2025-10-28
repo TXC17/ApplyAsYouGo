@@ -44,7 +44,7 @@ export default function UploadResume() {
     try {
       setLoading(true)
 
-      const response = await fetch("http://localhost:5000/api/process-resume", {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/process-resume' || 'http://localhost:5000/api/process-resume', {
         method: "POST",
         body: formData,
       })

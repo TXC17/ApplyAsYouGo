@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-JWT_SECRET = os.getenv("JWT_SECRET", "your_super_secret_jwt_key_here_change_in_production")
+JWT_SECRET = os.getenv("JWT_SECRET", "5caba265540278dd7885f6b6950c4904")
+
 JWT_ALGORITHM = "HS256"
 
 # Simple in-memory token blacklist (in production, use Redis or database)

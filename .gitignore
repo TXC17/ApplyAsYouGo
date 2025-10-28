@@ -155,6 +155,18 @@ test_*.py
 *_test.py
 tests/
 
+# Production environment files
+.env.production
+.env.local
+.env.staging
+
+# Sensitive files
+*.key
+*.pem
+*.crt
+secrets/
+credentials/
+
 # Deployment files
 deployment.zip
 *.zip

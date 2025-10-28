@@ -49,8 +49,20 @@ def api_scrape_internshala_internships():
         'quick_apply': data.get('quick_apply', True)
     }
 
-    result = controller.trigger_scrape_internships(filters)
-    return jsonify(result)
+    try:
+        result = controller.trigger_scrape_internships(filters)
+        
+        if result.get('success'):
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Scraping failed: {str(e)}',
+            'count': 0
+        }), 500
 
 @internshala_bp.route('/statistics', methods=['GET'])
 def api_internshala_statistics():

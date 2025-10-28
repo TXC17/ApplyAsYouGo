@@ -57,15 +57,25 @@ class LinkedInController:
         """Trigger LinkedIn scraping process"""
         try:
             result = self.scraper.scrape_internships(filters)
-            return {
-                'success': True,
-                'message': f"Successfully scraped {result['count']} LinkedIn internships",
-                'count': result['count']
-            }
+            count = result.get('count', 0)
+            
+            if count > 0:
+                return {
+                    'success': True,
+                    'message': result.get('message', f"Successfully scraped {count} LinkedIn internships"),
+                    'count': count
+                }
+            else:
+                return {
+                    'success': False,
+                    'message': result.get('message', 'No internships found'),
+                    'count': 0
+                }
         except Exception as e:
             return {
                 'success': False,
-                'message': f"Scraping error: {str(e)}"
+                'message': f"Scraping error: {str(e)}",
+                'count': 0
             }
 
     def get_internship_statistics(self):

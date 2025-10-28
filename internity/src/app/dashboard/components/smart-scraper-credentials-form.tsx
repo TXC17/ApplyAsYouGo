@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
-import { Check, Key, Mail, Hash, Tag } from "lucide-react"
+import { Key, Mail, Hash, Tag } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function SmartScraperCredentialsForm() {
@@ -78,12 +78,9 @@ export default function SmartScraperCredentialsForm() {
     }
 
     try {
-      // For now, we'll simulate the automation process
-      toast.success("Automation request submitted! The AI agent will start processing your preferences.")
+      toast.success("Starting automation process...")
       
-      // In a real implementation, this would call the backend automation service
-      /*
-      const response = await fetch("http://127.0.0.1:5000/api/v1/internships/search_and_apply", {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/v1/internships/search_and_apply" || "http://localhost:5000/api/v1/internships/search_and_apply", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,7 +96,6 @@ export default function SmartScraperCredentialsForm() {
         const errorData = await response.json()
         toast.error(errorData.message || "Failed to start automation. Please try again.")
       }
-      */
     } catch (error) {
       console.error("Error starting automation:", error)
       toast.error("An error occurred while starting automation. Please try again.")

@@ -4,16 +4,16 @@ homepage_blueprint = Blueprint('homepage', __name__)
 
 @homepage_blueprint.route('/', methods=['GET'])
 def get_homepage():
-    """Simple homepage endpoint for testing purposes"""
+    """Homepage endpoint"""
     
-    # Simple HTML response for testing
+    # Simple HTML response
     html_content = """
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Interngenie - AI-Powered Internship Platform</title>
+        <title>ApplyAsYouGo - AI-Powered Internship Platform</title>
         <style>
             body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
             .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -25,7 +25,7 @@ def get_homepage():
     </head>
     <body>
         <div class="container">
-            <h1>🚀 Interngenie - AI-Powered Internship Platform</h1>
+            <h1>🚀 ApplyAsYouGo - AI-Powered Internship Platform</h1>
             
             <div class="api-info">
                 <h3>Backend API Server</h3>
@@ -63,8 +63,8 @@ def get_homepage():
             </div>
 
             <div class="api-info">
-                <h3>🧪 Testing Status</h3>
-                <p>✅ Backend API tests completed</p>
+                <h3>🚀 API Status</h3>
+                <p>✅ Backend API operational</p>
                 <p>✅ Authentication system working</p>
                 <p>✅ Dashboard endpoint implemented</p>
                 <p>✅ Resume processing improved</p>
@@ -73,7 +73,7 @@ def get_homepage():
             </div>
 
             <p style="text-align: center; margin-top: 30px; color: #666;">
-                <em>Backend API Server | Interngenie Platform</em>
+                <em>Backend API Server | ApplyAsYouGo Platform</em>
             </p>
         </div>
     </body>

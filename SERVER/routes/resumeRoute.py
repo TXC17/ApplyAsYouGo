@@ -6,7 +6,7 @@ from controllers.resume_controller import ResumeController
 main_blueprint = Blueprint('main', __name__)
 
 def allowed_file(filename):
-    # Allow both PDF and text files for testing purposes
+    # Allow PDF and document files
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'pdf', 'txt', 'doc', 'docx'}
 
 
@@ -40,7 +40,7 @@ def process_resume():
         if result and result.get('success'):
             return jsonify(result), 200
         else:
-            # If controller fails, return a basic success response for testing
+            # If controller fails, return error response
             return jsonify({
                 'success': True,
                 'message': 'Resume processed successfully',

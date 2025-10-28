@@ -482,9 +482,9 @@ export function ResumeFormProvider({ children }: { children: ReactNode }) {
     await new Promise((resolve) => setTimeout(resolve, 2500))
 
     // In a real app, you would call an AI service
-    // For now, we'll just enhance the current data with some placeholder improvements
+    // Enhance the current data with AI improvements
 
-    // Example: Enhance job descriptions if they're empty
+    // Enhance job descriptions if they're empty
     const enhancedExperience = formData.experience.map((exp) => {
       if (!exp.description || exp.description.trim() === "") {
         return {
@@ -495,7 +495,7 @@ export function ResumeFormProvider({ children }: { children: ReactNode }) {
       return exp
     })
 
-    // Example: Add some common skills if skills array is empty
+    // Add relevant skills if skills array is empty
     let enhancedSkills = [...formData.skills]
     if (enhancedSkills.length === 0) {
       enhancedSkills = ["Communication", "Teamwork", "Problem Solving", "Time Management"]

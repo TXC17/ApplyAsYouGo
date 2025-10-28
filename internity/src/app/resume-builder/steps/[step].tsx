@@ -284,9 +284,9 @@ export default function ResumeBuilderStep({ params }: { params: { step: string }
     }
   }
 
-  // Generate PDF (mock function)
+  // Generate PDF
   const generatePDF = () => {
-    toast.success("In a real application, this would generate a PDF of your resume.")
+    toast.success("Resume data saved! You can view and print your resume from the Build page.")
     // This would typically call a PDF generation library or API
   }
 

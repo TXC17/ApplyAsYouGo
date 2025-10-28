@@ -1,4 +1,4 @@
-# Interngenie - AI-Powered Internship Platform
+# ApplyAsYouGo - AI-Powered Internship Platform
 
 A comprehensive platform that helps students find internships using AI-powered scraping and resume building tools.
 
@@ -59,26 +59,19 @@ JWT_SECRET=your_super_secret_jwt_key
 
 ## 🚀 Deployment
 
-### Docker Deployment
+⚠️ **IMPORTANT**: Before deploying to production, please read the [Production Setup Guide](PRODUCTION_SETUP.md) to ensure proper security configuration.
+
+### Development Deployment
 ```bash
 docker-compose up -d
 ```
 
-### Manual Deployment
-
-#### Frontend (Vercel/Netlify)
-```bash
-cd internity
-npm run build
-npm start
-```
-
-#### Backend (Railway/Heroku)
-```bash
-cd SERVER
-pip install -r requirements.txt
-python app.py
-```
+### Production Deployment
+See [PRODUCTION_SETUP.md](PRODUCTION_SETUP.md) for detailed production deployment instructions including:
+- Security configuration
+- Environment variable setup
+- SSL/TLS configuration
+- Monitoring setup
 
 ## 📊 API Endpoints
 
@@ -139,7 +132,7 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-For support, email support@interngenie.com or create an issue in the repository.
+For support, email support@applyasyougo.com or create an issue in the repository.
 
 ---
 

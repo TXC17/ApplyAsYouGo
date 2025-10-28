@@ -75,7 +75,7 @@ def get_db_connection():
     try:
         # Get MongoDB Cloud connection string from environment
         mongo_uri = os.environ.get('MONGO_URI')
-        db_name = os.environ.get('DB_NAME', 'interngenie')
+        db_name = os.environ.get('DB_NAME', 'ApplyAsYouGo')
         
         if not mongo_uri:
             raise Exception("MONGO_URI environment variable is required for MongoDB Cloud connection")

@@ -32,71 +32,147 @@ class LinkedInScraper:
         count = 0
 
         try:
-            category = filters.get('category', 'full-stack-development')
+            category = filters.get('category', 'internship')
             usertype = filters.get('usertype', 'fresher')
             passing_year = filters.get('passing_year', '2027')
             quick_apply = filters.get('quick_apply', True)
 
-            # Construct LinkedIn search URL (unauthenticated)
+            # Construct LinkedIn search URL with better parameters
             base_url = "https://www.linkedin.com/jobs/search/"
-            query = f"?keywords={category.replace('-', '%20')}&f_WT=2&f_TPR=r86400"  # Internship + recent
+            keywords = f"internship {category}".replace('-', ' ')
+            query = f"?keywords={keywords.replace(' ', '%20')}&f_WT=2&f_TPR=r86400&location=India"
+            
             if quick_apply:
                 query += "&f_AL=true"  # LinkedIn Easy Apply filter
-            query += "&f_E=1" if usertype == "fresher" else ""  # Entry-level only for freshers
+            if usertype == "fresher":
+                query += "&f_E=1"  # Entry-level only for freshers
 
+            print(f"Scraping LinkedIn with URL: {base_url + query}")
             driver.get(base_url + query)
             time.sleep(5)
 
-            # Scroll to load jobs
-            for _ in range(5):
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)
+            # Handle potential popups/modals
+            try:
+                # Close any modal that might appear
+                close_button = driver.find_element(By.CSS_SELECTOR, "button[aria-label='Dismiss']")
+                close_button.click()
+                time.sleep(1)
+            except:
+                pass
 
-            job_cards = wait.until(EC.presence_of_all_elements_located(
-                (By.CSS_SELECTOR, "ul.jobs-search__results-list li")
-            ))
+            # Scroll to load more jobs
+            for i in range(3):
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(3)
+                print(f"Scrolled {i+1} times")
+
+            # Try multiple selectors for job cards
+            job_cards = []
+            selectors = [
+                "ul.jobs-search__results-list li",
+                ".jobs-search-results__list-item",
+                ".job-search-card",
+                "[data-entity-urn*='jobPosting']"
+            ]
+
+            for selector in selectors:
+                try:
+                    job_cards = driver.find_elements(By.CSS_SELECTOR, selector)
+                    if job_cards:
+                        print(f"Found {len(job_cards)} job cards using selector: {selector}")
+                        break
+                except:
+                    continue
+
+            if not job_cards:
+                print("No job cards found with any selector")
+                return {'count': 0, 'message': 'No job listings found on LinkedIn'}
 
             collection = self.model.collection
 
-            for card in job_cards:
+            for i, card in enumerate(job_cards[:20]):  # Limit to first 20 jobs
                 try:
-                    title = card.find_element(By.CSS_SELECTOR, "h3").text.strip()
-                    company = card.find_element(By.CSS_SELECTOR, "h4").text.strip()
-                    location = card.find_element(By.CSS_SELECTOR, "div>div>div>span").text.strip()
-                    link = card.find_element(By.CSS_SELECTOR, "a").get_attribute("href").split("?")[0]
+                    # Try multiple selectors for each field
+                    title = self._extract_text(card, [
+                        "h3 a span[title]",
+                        "h3 a span",
+                        ".job-search-card__title a",
+                        "h3",
+                        "[data-entity-urn] h3"
+                    ])
 
-                    internship_data = {
-                        "title": title,
-                        "company": company,
-                        "location": location,
-                        "apply_link": link,
-                        "category": category,
-                        "usertype": usertype,
-                        "quick_apply": quick_apply,
-                        "passing_year": passing_year
-                    }
+                    company = self._extract_text(card, [
+                        "h4 a span[title]",
+                        "h4 a span", 
+                        ".job-search-card__subtitle a",
+                        "h4",
+                        "[data-entity-urn] h4"
+                    ])
 
-                    # Avoid duplicates
-                    existing = collection.find_one({
-                        "title": title,
-                        "company": company,
-                        "location": location
-                    })
+                    location = self._extract_text(card, [
+                        ".job-search-card__location",
+                        ".artdeco-entity-lockup__caption",
+                        "div[class*='location']",
+                        "span[class*='location']"
+                    ])
 
-                    if not existing:
-                        collection.insert_one(internship_data)
-                        count += 1
+                    # Get the job link
+                    link = None
+                    try:
+                        link_element = card.find_element(By.CSS_SELECTOR, "h3 a, .job-search-card__title a, a[data-entity-urn]")
+                        link = link_element.get_attribute("href").split("?")[0]
+                    except:
+                        pass
+
+                    if title and company:  # Only save if we have essential data
+                        internship_data = {
+                            "title": title,
+                            "company": company,
+                            "location": location or "Not specified",
+                            "apply_link": link,
+                            "category": category,
+                            "usertype": usertype,
+                            "quick_apply": quick_apply,
+                            "passing_year": passing_year,
+                            "scraped_at": time.time()
+                        }
+
+                        # Check for duplicates
+                        existing = collection.find_one({
+                            "title": title,
+                            "company": company
+                        })
+
+                        if not existing:
+                            collection.insert_one(internship_data)
+                            count += 1
+                            print(f"Saved: {title} at {company}")
 
                 except Exception as e:
-                    print(f"Error processing job card: {str(e)}")
+                    print(f"Error processing job card {i}: {str(e)}")
                     continue
 
-            return {'count': count, 'message': f'Successfully scraped {count} LinkedIn internships'}
+            message = f'Successfully scraped {count} LinkedIn internships'
+            print(message)
+            return {'count': count, 'message': message}
 
         except Exception as e:
-            print(f"LinkedIn scraping error: {str(e)}")
-            return {'count': 0, 'message': f'Error: {str(e)}'}
+            error_msg = f"LinkedIn scraping error: {str(e)}"
+            print(error_msg)
+            return {'count': 0, 'message': error_msg}
 
         finally:
             if driver:
                 driver.quit()
+
+    def _extract_text(self, element, selectors):
+        """Try multiple selectors to extract text"""
+        for selector in selectors:
+            try:
+                found_element = element.find_element(By.CSS_SELECTOR, selector)
+                text = found_element.get_attribute("title") or found_element.text.strip()
+                if text:
+                    return text
+            except:
+                continue
+        return None

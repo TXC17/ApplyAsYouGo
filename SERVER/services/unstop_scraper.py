@@ -148,55 +148,115 @@ class ScraperService:
     def _extract_internships(self, driver):
         """Extract data from all internship cards"""
         print("Extracting internship data...")
-        internship_cards = driver.find_elements(By.CLASS_NAME, "single_profile")
-        print(f"Found {len(internship_cards)} internship cards")
         
-        for card in internship_cards:
+        # Try multiple selectors for internship cards
+        card_selectors = [
+            ".single_profile",
+            "[id^='opp_']",
+            ".opportunity-card",
+            ".card-container",
+            "[data-opportunity-id]"
+        ]
+        
+        internship_cards = []
+        for selector in card_selectors:
+            try:
+                cards = driver.find_elements(By.CSS_SELECTOR, selector)
+                if cards:
+                    internship_cards = cards
+                    print(f"Found {len(internship_cards)} internship cards using selector: {selector}")
+                    break
+            except:
+                continue
+        
+        if not internship_cards:
+            print("No internship cards found with any selector")
+            return
+        
+        for i, card in enumerate(internship_cards[:25]):  # Limit to 25 cards
             try:
                 internship_data = {}
                 
-                # Get the ID from the element (for the link)
-                opp_id = card.get_attribute("id").replace("opp_", "")
+                # Get the ID from the element
+                opp_id = None
+                try:
+                    opp_id = card.get_attribute("id")
+                    if opp_id and opp_id.startswith("opp_"):
+                        opp_id = opp_id.replace("opp_", "")
+                    elif not opp_id:
+                        opp_id = card.get_attribute("data-opportunity-id") or f"unstop_{int(time.time())}_{i}"
+                except:
+                    opp_id = f"unstop_{int(time.time())}_{i}"
+                
                 internship_data["opp_id"] = opp_id
                 internship_data["link"] = f"https://unstop.com/internship/{opp_id}"
                 
-                # Get the title
-                title_element = card.find_element(By.CSS_SELECTOR, ".opp-title h2")
-                internship_data["title"] = title_element.text.strip()
+                # Get the title - try multiple selectors
+                title = self._extract_text_from_card(card, [
+                    ".opp-title h2",
+                    ".opportunity-title",
+                    "h2",
+                    "h3",
+                    ".title",
+                    "[class*='title']"
+                ])
+                internship_data["title"] = title or "Internship Position"
                 
-                # Get the company name
-                company_element = card.find_element(By.CSS_SELECTOR, ".content > p")
-                internship_data["company"] = company_element.text.strip()
+                # Get the company name - try multiple selectors
+                company = self._extract_text_from_card(card, [
+                    ".content > p",
+                    ".company-name",
+                    ".organization",
+                    "p",
+                    "[class*='company']",
+                    "[class*='organization']"
+                ])
+                internship_data["company"] = company or "Company"
+                
+                # Get location if available
+                location = self._extract_text_from_card(card, [
+                    ".location",
+                    "[class*='location']",
+                    ".venue"
+                ])
+                internship_data["location"] = location or "Remote"
                 
                 # Get the application count if available
-                try:
-                    applied_box = card.find_element(By.XPATH, ".//div[contains(@class, 'seperate_box')][contains(., 'Applied')]")
-                    applied_count = applied_box.text.split(' ')[0].strip()
-                    internship_data["applications"] = applied_count
-                except:
-                    internship_data["applications"] = "N/A"
+                applications = self._extract_text_from_card(card, [
+                    ".//div[contains(@class, 'seperate_box')][contains(., 'Applied')]",
+                    "[class*='applied']",
+                    "[class*='application']"
+                ], use_xpath=True)
+                
+                if applications:
+                    try:
+                        applications = applications.split(' ')[0].strip()
+                    except:
+                        pass
+                internship_data["applications"] = applications or "N/A"
                 
                 # Get days left if available
-                try:
-                    days_left_box = card.find_element(By.XPATH, ".//div[contains(@class, 'seperate_box')][contains(., 'days left')]")
-                    days_left = days_left_box.text.split(' ')[0].strip()
-                    internship_data["days_left"] = days_left
-                except:
-                    internship_data["days_left"] = "N/A"
+                days_left = self._extract_text_from_card(card, [
+                    ".//div[contains(@class, 'seperate_box')][contains(., 'days left')]",
+                    "[class*='deadline']",
+                    "[class*='days']"
+                ], use_xpath=True)
+                
+                if days_left:
+                    try:
+                        days_left = days_left.split(' ')[0].strip()
+                    except:
+                        pass
+                internship_data["days_left"] = days_left or "N/A"
                 
                 # Get skills/requirements if available
                 skills = []
                 try:
-                    skill_elements = card.find_elements(By.CSS_SELECTOR, ".chip_text")
-                    for skill in skill_elements:
-                        skills.append(skill.text.strip())
-                    
-                    # Check if there are more skills indicated by +X
-                    try:
-                        more_skills = card.find_element(By.CSS_SELECTOR, ".skill_count").text
-                        skills.append(more_skills)
-                    except:
-                        pass
+                    skill_elements = card.find_elements(By.CSS_SELECTOR, ".chip_text, .skill-tag, [class*='skill'], .tag")
+                    for skill in skill_elements[:5]:  # Limit to 5 skills
+                        skill_text = skill.text.strip()
+                        if skill_text and skill_text not in skills:
+                            skills.append(skill_text)
                 except:
                     pass
                 
@@ -209,12 +269,29 @@ class ScraperService:
                 except:
                     internship_data["image_url"] = "N/A"
                 
-                # Add to our list
-                self.internships.append(internship_data)
-                print(f"Extracted: {internship_data['title']} - {internship_data['company']}")
+                # Only add if we have essential data
+                if internship_data["title"] and internship_data["company"]:
+                    self.internships.append(internship_data)
+                    print(f"Extracted: {internship_data['title']} - {internship_data['company']}")
                 
             except Exception as e:
-                print(f"Error extracting internship data: {str(e)}")
+                print(f"Error extracting internship data from card {i}: {str(e)}")
+    
+    def _extract_text_from_card(self, card, selectors, use_xpath=False):
+        """Helper method to extract text using multiple selectors"""
+        for selector in selectors:
+            try:
+                if use_xpath:
+                    element = card.find_element(By.XPATH, selector)
+                else:
+                    element = card.find_element(By.CSS_SELECTOR, selector)
+                
+                text = element.text.strip()
+                if text:
+                    return text
+            except:
+                continue
+        return None
     
     def get_internships_from_db(self, limit=None):
         """Get internships from MongoDB"""

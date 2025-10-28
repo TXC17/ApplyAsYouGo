@@ -14,8 +14,8 @@ def search_and_apply():
         "max_applications": 5,
         "max_pages": 2,
         "credentials": {
-            "email": "email@example.com",
-            "password": "password"
+            "email": "user_email@domain.com",
+            "password": "user_password"
         },
         "url": "https://internshala.com/internship/detail/..."  # Optional
     }

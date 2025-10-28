@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Toaster, toast } from "sonner"
+import { Toaster } from "sonner"
 import SmartScraperCredentialsForm from "./components/smart-scraper-credentials-form"
 import { useAuth } from "@/app/context/context"
 import { useRouter } from "next/navigation"
@@ -40,7 +40,6 @@ export default function Dashboard() {
     }
   }, [isLoggedIn, router])
   const [agentActive, setAgentActive] = useState(false)
-  const [credentialsOpen, setCredentialsOpen] = useState(false)
   const [activeInternshipTab, setActiveInternshipTab] = useState("linkedin")
 
   // Loading states for each platform
@@ -55,136 +54,45 @@ export default function Dashboard() {
 
   // Use real user data from authentication
   const userData = user || {
-    name: "User",
-    email: "user@example.com",
+    name: "Student",
+    email: "student@college.edu",
   }
 
-  // Mock internship applications - would come from database in a real app
-  const applications = [
-    {
-      id: "app1",
-      company: "TechCorp",
-      position: "Frontend Developer Intern",
-      status: "Applied",
-      date: "2023-04-15",
-      source: "LinkedIn",
-    },
-    {
-      id: "app2",
-      company: "InnovateSoft",
-      position: "UI/UX Design Intern",
-      status: "Interview",
-      date: "2023-04-12",
-      source: "Unstop",
-    },
-    {
-      id: "app3",
-      company: "DataViz Inc",
-      position: "Data Science Intern",
-      status: "Rejected",
-      date: "2023-04-08",
-      source: "LinkedIn",
-    },
-  ]
+  // User applications - fetched from database
+  const [applications, setApplications] = useState<any[]>([])
+  
+  // Fetch user applications on component mount
+  useEffect(() => {
+    const fetchApplications = async () => {
+      if (!isLoggedIn || !AuthorizationToken) return
+      
+      try {
+        const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/applications' || 'http://localhost:5000/user/applications', {
+          headers: {
+            'Authorization': AuthorizationToken
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          setApplications(data.applications || [])
+        }
+      } catch (error) {
+        console.error('Error fetching applications:', error)
+        // Keep applications empty for new users
+        setApplications([])
+      }
+    }
+    
+    fetchApplications()
+  }, [isLoggedIn, AuthorizationToken])
 
-  // Mock LinkedIn internships
-  const mockLinkedInInternships: LinkedInInternship[] = [
-    {
-      id: "li1",
-      title: "Web Development",
-      company: "Foodcow",
-      location: "Chennai",
-      duration: "3 Months",
-      stipend: "₹ 5,000 - 10,000 /month",
-      category: "web-development-internship",
-    },
-    {
-      id: "li2",
-      title: "Frontend Developer",
-      company: "TechSolutions",
-      location: "Remote",
-      duration: "6 Months",
-      stipend: "₹ 15,000 /month",
-      category: "frontend-development-internship",
-    },
-    {
-      id: "li3",
-      title: "Full Stack Developer",
-      company: "WebWizards",
-      location: "Bangalore",
-      duration: "4 Months",
-      stipend: "₹ 20,000 - 25,000 /month",
-      category: "full-stack-development-internship",
-    },
-  ]
+  // Error states for scrapers
+  const [linkedInError, setLinkedInError] = useState<string | null>(null)
+  const [internshalaError, setInternshalaError] = useState<string | null>(null)
+  const [unstopError, setUnstopError] = useState<string | null>(null)
 
-  // Mock Internshala internships
-  const mockInternshalaInternships: InternshalaInternship[] = [
-    {
-      id: "in1",
-      title: "WordPress Developer",
-      company: "Godwin Vox Dei",
-      applicants: "N/A",
-      days_left: "10",
-      skills: ["Fresher"],
-      category: "full-stack-development",
-      scraped_at: "2025-04-10T16:02:37.458Z",
-      url: null,
-    },
-    {
-      id: "in2",
-      title: "React Developer",
-      company: "CodeCraft",
-      applicants: "50+",
-      days_left: "5",
-      skills: ["React", "JavaScript", "CSS"],
-      category: "frontend-development",
-      scraped_at: "2025-04-10T16:02:37.458Z",
-      url: "https://example.com/job1",
-    },
-    {
-      id: "in3",
-      title: "UI/UX Designer",
-      company: "DesignHub",
-      applicants: "25+",
-      days_left: "15",
-      skills: ["Figma", "Adobe XD", "UI Design"],
-      category: "design",
-      scraped_at: "2025-04-10T16:02:37.458Z",
-      url: "https://example.com/job2",
-    },
-  ]
 
-  // Mock Unstop internships
-  const mockUnstopInternships: UnstopInternship[] = [
-    {
-      id: "un1",
-      title: "Machine Learning Engineer",
-      company: "AI Solutions",
-      location: "Hyderabad",
-      duration: "6 Months",
-      stipend: "₹ 25,000 /month",
-      category: "machine-learning-internship",
-    },
-    {
-      id: "un2",
-      title: "Data Analyst",
-      company: "DataInsights",
-      location: "Remote",
-      duration: "3 Months",
-      stipend: "₹ 12,000 /month",
-      category: "data-analysis-internship",
-    },
-    {
-      id: "un3",
-      title: "Backend Developer",
-      company: "ServerStack",
-      location: "Delhi",
-      duration: "4 Months",
-      stipend: "₹ 18,000 /month",
-      category: "backend-development-internship",
-    },
-  ]
 
   useEffect(() => {
     const clock = document.getElementById("system-clock")
@@ -213,13 +121,12 @@ export default function Dashboard() {
     return () => clearInterval(intervalId) // Cleanup interval on component unmount
   }, [])
 
-  // Load initial data
+  // Load initial data - start with empty arrays for new users
   useEffect(() => {
-    // In a real app, this would fetch data from the database
-    // For now, we'll use the mock data
-    setLinkedInInternships(mockLinkedInInternships)
-    setInternshalaInternships(mockInternshalaInternships)
-    setUnstopInternships(mockUnstopInternships)
+    // Initialize with empty arrays - users need to scrape to get data
+    setLinkedInInternships([])
+    setInternshalaInternships([])
+    setUnstopInternships([])
 
     // MongoDB integration would look like this (commented out as requested)
     /*
@@ -278,36 +185,7 @@ export default function Dashboard() {
     */
   }
 
-  const handleSaveCredentials = (e: React.FormEvent) => {
-    e.preventDefault()
 
-    // This would save the credentials to the database in a real app
-    // Backend integration would go here (commented out as requested)
-    /*
-    const formData = new FormData(e.target as HTMLFormElement);
-    const credentials = {
-      linkedin: {
-        email: formData.get('linkedin-email'),
-        password: formData.get('linkedin-password'),
-      },
-      unstop: {
-        email: formData.get('unstop-email'),
-        password: formData.get('unstop-password'),
-      },
-    };
-
-    // Save credentials to database
-    fetch('/api/user/credentials', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(credentials),
-    });
-    */
-
-    setCredentialsOpen(false)
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -325,32 +203,52 @@ export default function Dashboard() {
   // Handle scraping for each platform
   const handleScrapeLinkedIn = async () => {
     setIsLinkedInLoading(true)
+    setLinkedInError(null)
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/linkedin/scrape', {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/linkedin/scrape' || 'http://localhost:5000/linkedin/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          keywords: 'internship',
-          location: 'India'
+          category: 'internship',
+          usertype: 'fresher',
+          passing_year: '2027',
+          quick_apply: true
         }),
       })
 
       const data = await response.json()
 
-      if (response.ok && data.internships) {
-        setLinkedInInternships(data.internships)
+      if (response.ok && data.success) {
+        // Fetch the scraped data from the list endpoint
+        const listResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/linkedin/list' || 'http://localhost:5000/api/linkedin/list')
+        const listData = await listResponse.json()
+        
+        if (listResponse.ok && listData.data) {
+          const transformedData = listData.data.map((item: any) => ({
+            id: item._id || `linkedin-${Date.now()}-${Math.random()}`,
+            title: item.title || 'Internship Position',
+            company: item.company || 'Company',
+            location: item.location || 'Location not specified',
+            duration: '3-6 Months',
+            stipend: 'Competitive',
+            category: item.category || 'internship'
+          }))
+          setLinkedInInternships(transformedData)
+        } else {
+          setLinkedInError('No internships found. Try scraping again.')
+          setLinkedInInternships([])
+        }
       } else {
-        console.error('LinkedIn scraper error:', data.message || 'Unknown error')
-        // Fallback to mock data
-        setLinkedInInternships([...mockLinkedInInternships])
+        setLinkedInError(data.message || 'Failed to scrape LinkedIn internships')
+        setLinkedInInternships([])
       }
     } catch (error) {
       console.error('Error scraping LinkedIn:', error)
-      // Fallback to mock data
-      setLinkedInInternships([...mockLinkedInInternships])
+      setLinkedInError('Network error. Please check if the backend is running.')
+      setLinkedInInternships([])
     } finally {
       setIsLinkedInLoading(false)
     }
@@ -358,32 +256,54 @@ export default function Dashboard() {
 
   const handleScrapeInternshala = async () => {
     setIsInternshalaLoading(true)
+    setInternshalaError(null)
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/internshala/scrape', {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/internshala/scrape' || 'http://localhost:5000/api/internshala/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          category: 'programming',
-          location: 'Work from home'
+          category: 'web-development',
+          usertype: 'fresher',
+          passing_year: '2027',
+          quick_apply: true
         }),
       })
 
       const data = await response.json()
 
-      if (response.ok && data.internships) {
-        setInternshalaInternships(data.internships)
+      if (response.ok && data.count > 0) {
+        // Fetch the scraped data from the list endpoint
+        const listResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/internshala/list' || 'http://localhost:5000/api/internshala/list')
+        const listData = await listResponse.json()
+        
+        if (listResponse.ok && listData.data) {
+          const transformedData = listData.data.map((item: any) => ({
+            id: item._id || `internshala-${Date.now()}-${Math.random()}`,
+            title: item.title || 'Internship Position',
+            company: item.company || 'Company',
+            applicants: item.applicants || 'N/A',
+            days_left: item.days_left || 'N/A',
+            skills: item.skills || [],
+            category: item.category || 'internship',
+            scraped_at: new Date().toISOString(),
+            url: item.apply_link
+          }))
+          setInternshalaInternships(transformedData)
+        } else {
+          setInternshalaError('No internships found. Try scraping again.')
+          setInternshalaInternships([])
+        }
       } else {
-        console.error('Internshala scraper error:', data.message || 'Unknown error')
-        // Fallback to mock data
-        setInternshalaInternships([...mockInternshalaInternships])
+        setInternshalaError(data.message || 'Failed to scrape Internshala internships')
+        setInternshalaInternships([])
       }
     } catch (error) {
       console.error('Error scraping Internshala:', error)
-      // Fallback to mock data
-      setInternshalaInternships([...mockInternshalaInternships])
+      setInternshalaError('Network error. Please check if the backend is running.')
+      setInternshalaInternships([])
     } finally {
       setIsInternshalaLoading(false)
     }
@@ -391,9 +311,10 @@ export default function Dashboard() {
 
   const handleScrapeUnstop = async () => {
     setIsUnstopLoading(true)
+    setUnstopError(null)
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/v1/scrape', {
+      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/v1/scrape' || 'http://localhost:5000/api/v1/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -409,35 +330,34 @@ export default function Dashboard() {
 
       if (response.ok && data.status === 'success') {
         // Fetch the scraped internships from the database
-        const internshipsResponse = await fetch('http://127.0.0.1:5000/api/v1/internships?limit=10')
+        const internshipsResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/v1/internships?limit=10' || 'http://localhost:5000/api/v1/internships?limit=10')
         const internshipsData = await internshipsResponse.json()
         
-        if (internshipsResponse.ok && internshipsData.internships) {
+        if (internshipsResponse.ok && internshipsData.internships && internshipsData.internships.length > 0) {
           // Transform the data to match our frontend format
           const transformedInternships = internshipsData.internships.map((internship: any) => ({
             id: internship.opp_id || `unstop-${Date.now()}-${Math.random()}`,
             title: internship.title || 'Internship Position',
             company: internship.company || 'Company',
-            location: 'Remote', // Unstop doesn't always provide location
-            duration: '3-6 Months', // Default duration
-            stipend: 'Competitive', // Default stipend
+            location: internship.location || 'Remote',
+            duration: '3-6 Months',
+            stipend: 'Competitive',
             category: 'internship'
           }))
           
           setUnstopInternships(transformedInternships)
         } else {
-          // Fallback to mock data if API fails
-          setUnstopInternships([...mockUnstopInternships])
+          setUnstopError('No internships found. Try scraping again.')
+          setUnstopInternships([])
         }
       } else {
-        console.error('Unstop scraper error:', data.message)
-        // Fallback to mock data
-        setUnstopInternships([...mockUnstopInternships])
+        setUnstopError(data.message || 'Failed to scrape Unstop internships')
+        setUnstopInternships([])
       }
     } catch (error) {
       console.error('Error scraping Unstop:', error)
-      // Fallback to mock data
-      setUnstopInternships([...mockUnstopInternships])
+      setUnstopError('Network error. Please check if the backend is running.')
+      setUnstopInternships([])
     } finally {
       setIsUnstopLoading(false)
     }
@@ -455,11 +375,11 @@ export default function Dashboard() {
                 <div className="flex flex-col items-center mb-6">
                   <div className="w-20 h-20 rounded-full bg-[rgba(30,30,35,0.5)] flex items-center justify-center overflow-hidden mb-4 border-2 border-[#f1eece]/30">
                     <div className="w-full h-full bg-gradient-to-br from-[#7d0d1b] to-[#a90519] flex items-center justify-center text-[#f1eece] text-2xl font-bold">
-                      {userData.name.charAt(0).toUpperCase()}
+                      {userData?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                   </div>
-                  <h2 className="text-xl font-bold text-[#f1eece]">{userData.name}</h2>
-                  <p className="text-[#f1eece]/70 text-sm">{userData.email}</p>
+                  <h2 className="text-xl font-bold text-[#f1eece]">{userData?.name || 'User'}</h2>
+                  <p className="text-[#f1eece]/70 text-sm">{userData?.email || 'user@example.com'}</p>
                 </div>
 
                 <nav className="space-y-1">
@@ -592,14 +512,16 @@ export default function Dashboard() {
                                 <span className="text-xs text-[#f1e  eece]/50">via {app.source}</span>
                               </div>
                             </div>
-                            <span className="text-xs text-[#f1eece]/50">{new Date(app.date).toLocaleDateString()}</span>
+                            <span className="text-xs text-[#f1eece]/50">{new Date(app.applied_date || app.date).toLocaleDateString()}</span>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-[#f1eece]/50">
-                      <p>No applications yet. Activate the AI agent to start applying.</p>
+                      <Briefcase size={48} className="mx-auto mb-4 opacity-30" />
+                      <p className="text-lg font-medium mb-2">No Applications Yet</p>
+                      <p className="text-sm">Start by activating the AI agent or manually applying to internships.</p>
                     </div>
                   )}
                 </div>
@@ -666,12 +588,23 @@ export default function Dashboard() {
                         <div className="animate-spin h-6 w-6 border-2 border-[#a90519] border-t-transparent rounded-full"></div>
                         <span className="ml-3 text-[#f1eece]/70">Scraping LinkedIn internships...</span>
                       </div>
+                    ) : linkedInError ? (
+                      <div className="text-center py-12 text-red-400">
+                        <p className="text-lg font-medium mb-2">Scraping Failed</p>
+                        <p className="text-sm">{linkedInError}</p>
+                        <button 
+                          onClick={handleScrapeLinkedIn}
+                          className="mt-4 px-4 py-2 bg-[#a90519] hover:bg-[#ff102a] text-[#f1eece] rounded-lg transition-colors"
+                        >
+                          Try Again
+                        </button>
+                      </div>
                     ) : linkedInInternships.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {linkedInInternships.map((internship) => (
                           <motion.div
                             key={internship.id}
-                            className="bg-[rgba(19,19,24,0.85)] text-[#f1eece] border border-[#f1eece]/20 rounded-xl p-4 shadow transition hover:scale  text-[#f1eece] border border-[#f1eece]/20 rounded-xl p-4 shadow transition hover:scale-[1.01]"
+                            className="bg-[rgba(19,19,24,0.85)] text-[#f1eece] border border-[#f1eece]/20 rounded-xl p-4 shadow transition hover:scale-[1.01]"
                             whileHover={{ scale: 1.01 }}
                             transition={{ duration: 0.2 }}
                           >
@@ -740,6 +673,17 @@ export default function Dashboard() {
                       <div className="flex justify-center items-center py-12">
                         <div className="animate-spin h-6 w-6 border-2 border-[#a90519] border-t-transparent rounded-full"></div>
                         <span className="ml-3 text-[#f1eece]/70">Scraping Internshala internships...</span>
+                      </div>
+                    ) : internshalaError ? (
+                      <div className="text-center py-12 text-red-400">
+                        <p className="text-lg font-medium mb-2">Scraping Failed</p>
+                        <p className="text-sm">{internshalaError}</p>
+                        <button 
+                          onClick={handleScrapeInternshala}
+                          className="mt-4 px-4 py-2 bg-[#a90519] hover:bg-[#ff102a] text-[#f1eece] rounded-lg transition-colors"
+                        >
+                          Try Again
+                        </button>
                       </div>
                     ) : internshalaInternships.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -823,6 +767,17 @@ export default function Dashboard() {
                       <div className="flex justify-center items-center py-12">
                         <div className="animate-spin h-6 w-6 border-2 border-[#a90519] border-t-transparent rounded-full"></div>
                         <span className="ml-3 text-[#f1eece]/70">Scraping Unstop internships...</span>
+                      </div>
+                    ) : unstopError ? (
+                      <div className="text-center py-12 text-red-400">
+                        <p className="text-lg font-medium mb-2">Scraping Failed</p>
+                        <p className="text-sm">{unstopError}</p>
+                        <button 
+                          onClick={handleScrapeUnstop}
+                          className="mt-4 px-4 py-2 bg-[#a90519] hover:bg-[#ff102a] text-[#f1eece] rounded-lg transition-colors"
+                        >
+                          Try Again
+                        </button>
                       </div>
                     ) : unstopInternships.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
