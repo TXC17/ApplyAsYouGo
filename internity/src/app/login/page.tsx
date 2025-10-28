@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
-import { Eye, EyeOff, Mail, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, Mail, ArrowRight, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { storeTokenInLS } = useAuth()
 
@@ -29,6 +30,9 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Prevent multiple submissions
+    if (isLoading) return
 
     const newErrors: { email?: string; password?: string } = {}
 
@@ -47,6 +51,7 @@ export default function LoginPage() {
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length === 0) {
+      setIsLoading(true)
       try {
         const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/login' || 'http://localhost:5000/user/login', {
           method: "POST",
@@ -76,6 +81,8 @@ export default function LoginPage() {
       } catch (error) {
         console.error("Login error:", error)
         setErrors({ email: "Failed to connect to server. Please check if the backend is running." })
+      } finally {
+        setIsLoading(false)
       }
     }
   }
@@ -154,10 +161,20 @@ export default function LoginPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-[#7d0d1b] to-[#a90519] hover:from-[#a90519] hover:to-[#ff102a] text-[#f1eece] py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-[#7d0d1b] to-[#a90519] hover:from-[#a90519] hover:to-[#ff102a] text-[#f1eece] py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  Login
-                  <ArrowRight size={16} className="ml-2" />
+                  {isLoading ? (
+                    <>
+                      <RefreshCw size={16} className="mr-2 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      Login
+                      <ArrowRight size={16} className="ml-2" />
+                    </>
+                  )}
                 </Button>
               </form>
 

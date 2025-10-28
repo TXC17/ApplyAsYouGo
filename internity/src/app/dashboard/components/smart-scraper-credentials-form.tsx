@@ -79,7 +79,7 @@ export default function SmartScraperCredentialsForm() {
 
     try {
       toast.success("Starting automation process...")
-      
+
       const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/v1/internships/search_and_apply" || "http://localhost:5000/api/v1/internships/search_and_apply", {
         method: "POST",
         headers: {

@@ -19,7 +19,7 @@ interface AuthContextType {
   isLoggedIn: boolean
   AuthorizationToken: string
   storeTokenInLS: (token: string, userData?: User) => void
-  logoutUser: () => void
+  logoutUser: () => Promise<void>
   loading: boolean
 }
 
@@ -49,13 +49,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const logoutUser = () => {
-    setToken(null)
-    setUser(null)
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    // Clear any other user-related data
-    console.log("User logged out successfully")
+  const logoutUser = async () => {
+    try {
+      // Call server logout endpoint if token exists
+      if (token) {
+        await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/logout' || 'http://localhost:5000/user/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+      }
+    } catch (error) {
+      console.error("Error during server logout:", error)
+      // Continue with client-side logout even if server call fails
+    } finally {
+      // Always clear client-side data
+      setToken(null)
+      setUser(null)
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+      console.log("User logged out successfully")
+    }
   }
 
   useEffect(() => {

@@ -93,8 +93,8 @@ const Navbar = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    logoutUser()
+                  onClick={async () => {
+                    await logoutUser()
                     router.push("/")
                   }}
                   className="border-white/30 text-white hover:bg-white/10"
@@ -148,8 +148,8 @@ const Navbar = () => {
                   </Link>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      logoutUser()
+                    onClick={async () => {
+                      await logoutUser()
                       router.push("/")
                       setMenuOpen(false)
                     }}

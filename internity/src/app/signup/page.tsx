@@ -2,7 +2,7 @@
 import React from "react"
 import { useState } from "react"
 import Link from "next/link"
-import { Eye, EyeOff, User, Mail, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, User, Mail, ArrowRight, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,7 @@ import { BackgroundBeams } from "@/components/ui/background-beams"
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -42,6 +43,10 @@ export default function SignupPage() {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Prevent multiple submissions
+    if (isLoading) return
+
     const newErrors: {
       name?: string
       email?: string
@@ -68,6 +73,7 @@ export default function SignupPage() {
     }
     setErrors(newErrors)
     if (Object.keys(newErrors).length === 0) {
+      setIsLoading(true)
       try {
         const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/signup' || 'http://localhost:5000/user/signup', {
           method: 'POST',
@@ -98,6 +104,8 @@ export default function SignupPage() {
       } catch (error) {
         console.error("Signup error:", error)
         setErrors({ email: "Failed to connect to server. Please check if the backend is running." })
+      } finally {
+        setIsLoading(false)
       }
     }
   }
@@ -196,10 +204,20 @@ export default function SignupPage() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full mt-2 bg-gradient-to-r from-[#7d0d1b] to-[#a90519] hover:from-[#a90519] hover:to-[#ff102a] text-[#f1eece] py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
+                  disabled={isLoading}
+                  className="w-full mt-2 bg-gradient-to-r from-[#7d0d1b] to-[#a90519] hover:from-[#a90519] hover:to-[#ff102a] text-[#f1eece] py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  Sign Up
-                  <ArrowRight size={16} className="ml-2" />
+                  {isLoading ? (
+                    <>
+                      <RefreshCw size={16} className="mr-2 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    <>
+                      Sign Up
+                      <ArrowRight size={16} className="ml-2" />
+                    </>
+                  )}
                 </Button>
               </form>
               <div className="mt-6 text-center">
