@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Call server logout endpoint if token exists
       if (token) {
-        await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/logout' || 'http://localhost:5000/user/logout', {
+        await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/user/logout', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

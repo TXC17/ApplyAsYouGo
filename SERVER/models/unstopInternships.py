@@ -5,11 +5,21 @@ import json
 import pandas as pd
 
 class InternshipModel:
-    def __init__(self, mongodb_uri="mongodb://localhost:27017/"):
+    def __init__(self, mongodb_uri=None):
         try:
+            import os
+            from dotenv import load_dotenv
+            load_dotenv()
+            
+            # Use environment variables for database connection
+            if not mongodb_uri:
+                mongodb_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+            
+            db_name = os.getenv('DB_NAME', 'ApplyAsYouGo')
+            
             self.mongo_client = pymongo.MongoClient(mongodb_uri)
-            self.db = self.mongo_client["resume_processor_db"]
-            self.collection = self.db["unstop"]
+            self.db = self.mongo_client[db_name]
+            self.collection = self.db["unstop_internships"]
             print("MongoDB connected successfully")
         except Exception as e:
             print(f"MongoDB connection error: {str(e)}")

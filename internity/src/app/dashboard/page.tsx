@@ -60,19 +60,19 @@ export default function Dashboard() {
 
   // User applications - fetched from database
   const [applications, setApplications] = useState<any[]>([])
-  
+
   // Fetch user applications on component mount
   useEffect(() => {
     const fetchApplications = async () => {
       if (!isLoggedIn || !AuthorizationToken) return
-      
+
       try {
-        const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/applications' || 'http://localhost:5000/user/applications', {
+        const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/user/applications', {
           headers: {
             'Authorization': AuthorizationToken
           }
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           setApplications(data.applications || [])
@@ -83,7 +83,7 @@ export default function Dashboard() {
         setApplications([])
       }
     }
-    
+
     fetchApplications()
   }, [isLoggedIn, AuthorizationToken])
 
@@ -206,7 +206,7 @@ export default function Dashboard() {
     setLinkedInError(null)
 
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/linkedin/scrape' || 'http://localhost:5000/linkedin/scrape', {
+      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/linkedin/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,9 +223,9 @@ export default function Dashboard() {
 
       if (response.ok && data.success) {
         // Fetch the scraped data from the list endpoint
-        const listResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/linkedin/list' || 'http://localhost:5000/api/linkedin/list')
+        const listResponse = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/linkedin/list')
         const listData = await listResponse.json()
-        
+
         if (listResponse.ok && listData.data) {
           const transformedData = listData.data.map((item: any) => ({
             id: item._id || `linkedin-${Date.now()}-${Math.random()}`,
@@ -259,7 +259,7 @@ export default function Dashboard() {
     setInternshalaError(null)
 
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/internshala/scrape' || 'http://localhost:5000/api/internshala/scrape', {
+      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/internshala/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,9 +276,9 @@ export default function Dashboard() {
 
       if (response.ok && data.count > 0) {
         // Fetch the scraped data from the list endpoint
-        const listResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/internshala/list' || 'http://localhost:5000/api/internshala/list')
+        const listResponse = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/internshala/list')
         const listData = await listResponse.json()
-        
+
         if (listResponse.ok && listData.data) {
           const transformedData = listData.data.map((item: any) => ({
             id: item._id || `internshala-${Date.now()}-${Math.random()}`,
@@ -314,7 +314,7 @@ export default function Dashboard() {
     setUnstopError(null)
 
     try {
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/v1/scrape' || 'http://localhost:5000/api/v1/scrape', {
+      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/v1/scrape', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -330,9 +330,9 @@ export default function Dashboard() {
 
       if (response.ok && data.status === 'success') {
         // Fetch the scraped internships from the database
-        const internshipsResponse = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/v1/internships?limit=10' || 'http://localhost:5000/api/v1/internships?limit=10')
+        const internshipsResponse = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/v1/internships?limit=10')
         const internshipsData = await internshipsResponse.json()
-        
+
         if (internshipsResponse.ok && internshipsData.internships && internshipsData.internships.length > 0) {
           // Transform the data to match our frontend format
           const transformedInternships = internshipsData.internships.map((internship: any) => ({
@@ -344,7 +344,7 @@ export default function Dashboard() {
             stipend: 'Competitive',
             category: 'internship'
           }))
-          
+
           setUnstopInternships(transformedInternships)
         } else {
           setUnstopError('No internships found. Try scraping again.')
@@ -415,7 +415,7 @@ export default function Dashboard() {
                     <Bell size={18} />
                     <span>Notifications</span>
                   </button> */}
-                  <button 
+                  <button
                     onClick={() => {
                       logoutUser()
                       router.push("/")
@@ -592,7 +592,7 @@ export default function Dashboard() {
                       <div className="text-center py-12 text-red-400">
                         <p className="text-lg font-medium mb-2">Scraping Failed</p>
                         <p className="text-sm">{linkedInError}</p>
-                        <button 
+                        <button
                           onClick={handleScrapeLinkedIn}
                           className="mt-4 px-4 py-2 bg-[#a90519] hover:bg-[#ff102a] text-[#f1eece] rounded-lg transition-colors"
                         >
@@ -678,7 +678,7 @@ export default function Dashboard() {
                       <div className="text-center py-12 text-red-400">
                         <p className="text-lg font-medium mb-2">Scraping Failed</p>
                         <p className="text-sm">{internshalaError}</p>
-                        <button 
+                        <button
                           onClick={handleScrapeInternshala}
                           className="mt-4 px-4 py-2 bg-[#a90519] hover:bg-[#ff102a] text-[#f1eece] rounded-lg transition-colors"
                         >
@@ -772,7 +772,7 @@ export default function Dashboard() {
                       <div className="text-center py-12 text-red-400">
                         <p className="text-lg font-medium mb-2">Scraping Failed</p>
                         <p className="text-sm">{unstopError}</p>
-                        <button 
+                        <button
                           onClick={handleScrapeUnstop}
                           className="mt-4 px-4 py-2 bg-[#a90519] hover:bg-[#ff102a] text-[#f1eece] rounded-lg transition-colors"
                         >

@@ -53,7 +53,7 @@ export default function LoginPage() {
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true)
       try {
-        const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/login' || 'http://localhost:5000/user/login', {
+        const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/user/login', {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

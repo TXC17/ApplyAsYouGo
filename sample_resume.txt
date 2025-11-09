@@ -1,0 +1,46 @@
+KESHAV KUMAR
+Email: skullplay844@gmail.com
+Phone: +91-9876543210
+
+OBJECTIVE
+Seeking an internship position in web development to apply my skills in React, Node.js, and Python.
+
+EDUCATION
+Bachelor of Technology in Computer Science
+XYZ University, 2022-2026
+CGPA: 8.5/10
+
+SKILLS
+- Programming Languages: Python, JavaScript, TypeScript, Java
+- Web Technologies: React, Next.js, Node.js, Express.js
+- Databases: MongoDB, MySQL, PostgreSQL
+- Tools: Git, Docker, VS Code
+- Other: REST APIs, GraphQL, Agile Development
+
+PROJECTS
+1. E-Commerce Platform
+   - Built a full-stack e-commerce application using MERN stack
+   - Implemented user authentication, product catalog, and payment integration
+   - Technologies: React, Node.js, MongoDB, Stripe API
+
+2. Task Management System
+   - Developed a collaborative task management tool
+   - Features include real-time updates, team collaboration, and notifications
+   - Technologies: Next.js, Socket.io, PostgreSQL
+
+EXPERIENCE
+Web Development Intern
+ABC Tech Solutions, Summer 2024
+- Developed responsive web applications using React and TypeScript
+- Collaborated with senior developers on API integration
+- Improved application performance by 30%
+
+CERTIFICATIONS
+- Full Stack Web Development - Coursera
+- Python for Data Science - edX
+- AWS Cloud Practitioner
+
+ACHIEVEMENTS
+- Winner of University Hackathon 2024
+- Published research paper on Machine Learning applications
+- Active contributor to open-source projects on GitHub

@@ -75,7 +75,7 @@ export default function SignupPage() {
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true)
       try {
-        const response = await fetch(process.env.NEXT_PUBLIC_API_URL + '/user/signup' || 'http://localhost:5000/user/signup', {
+        const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/user/signup', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -76,3 +76,13 @@ class InternshalaInternshipModel:
         stats['days_left_distribution'] = list(self.collection.aggregate(pipeline))
 
         return stats
+
+    def get_internships_by_category(self, category):
+        """Get internships by category"""
+        try:
+            filters = {'category': category}
+            internships, total_count = self.find_internships(filters)
+            return internships
+        except Exception as e:
+            print(f"Error getting internships by category: {str(e)}")
+            return []

@@ -12,7 +12,7 @@ import { Key, Mail, Hash, Tag } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function SmartScraperCredentialsForm() {
-  const keywordsList = ["web-development", "backend-development", "front-end-development", "machine-learning", "blockchain-development"]
+  const keywordsList = ["web-development", "backend-development", "front-end-development", "machine-learning"]
 
   const [formData, setFormData] = useState({
     keywords: "web-development",
@@ -80,7 +80,7 @@ export default function SmartScraperCredentialsForm() {
     try {
       toast.success("Starting automation process...")
 
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL + "/api/v1/internships/search_and_apply" || "http://localhost:5000/api/v1/internships/search_and_apply", {
+      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000") + "/api/v1/internships/search_and_apply", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
