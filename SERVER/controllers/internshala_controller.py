@@ -11,8 +11,9 @@ class InternshalaController:
             result = self.scraper.scrape_internships(filters)
             count = result.get('count', 0)
             
+            # Success if scraping completed without errors, even if 0 new internships
             return {
-                'success': count > 0,
+                'success': True,
                 'message': result.get('message', f'Scraped {count} internships'),
                 'count': count
             }

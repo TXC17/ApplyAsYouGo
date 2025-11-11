@@ -18,12 +18,18 @@ class LinkedInScraper:
         chrome_options.add_argument('--window-size=1920x1080')
         chrome_options.add_argument('--start-maximized')
         chrome_options.add_argument('--disable-notifications')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
         # chrome_options.add_argument('--headless')  # Uncomment for headless mode
         
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        wait = WebDriverWait(driver, 20)
-        driver.implicitly_wait(20)
+        driver.set_page_load_timeout(30)  # 30 second page load timeout
+        wait = WebDriverWait(driver, 15)  # Reduced from 20 to 15
+        driver.implicitly_wait(10)  # Reduced from 20 to 10
 
         return driver, wait
 
@@ -60,10 +66,10 @@ class LinkedInScraper:
             except:
                 pass
 
-            # Scroll to load more jobs
-            for i in range(3):
+            # Scroll to load more jobs (reduced scrolling for faster scraping)
+            for i in range(2):  # Reduced from 3 to 2
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(3)
+                time.sleep(2)  # Reduced from 3 to 2 seconds
                 print(f"Scrolled {i+1} times")
 
             # Try multiple selectors for job cards
@@ -90,7 +96,7 @@ class LinkedInScraper:
 
             collection = self.model.collection
 
-            for i, card in enumerate(job_cards[:20]):  # Limit to first 20 jobs
+            for i, card in enumerate(job_cards[:15]):  # Limit to first 15 jobs for faster scraping
                 try:
                     # Try multiple selectors for each field
                     title = self._extract_text(card, [

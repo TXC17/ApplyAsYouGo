@@ -2,7 +2,7 @@ import os
 
 class Config:
     """Base configuration"""
-    MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/')
+    MONGODB_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
     DEBUG = False
     TESTING = False    
     SECRET_KEY = os.environ.get("SECRET_KEY")

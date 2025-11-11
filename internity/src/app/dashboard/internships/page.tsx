@@ -35,19 +35,8 @@ interface InternshalaInternship {
   source: "internshala"
 }
 
-interface UnstopInternship {
-  id: string
-  title: string
-  company: string
-  location: string
-  duration: string
-  stipend: string
-  category: string
-  source: "unstop"
-}
-
 // Union type for all internship types
-type Internship = LinkedInInternship | InternshalaInternship | UnstopInternship
+type Internship = LinkedInInternship | InternshalaInternship
 
 export default function InternshipsPage() {
   const router = useRouter()
@@ -77,16 +66,6 @@ export default function InternshipsPage() {
       scraped_at: "2025-04-10T16:02:37.458Z",
       url: null,
       source: "internshala",
-    },
-    {
-      id: "un1",
-      title: "Machine Learning Engineer",
-      company: "AI Solutions",
-      location: "Hyderabad",
-      duration: "6 Months",
-      stipend: "₹ 25,000 /month",
-      category: "machine-learning-internship",
-      source: "unstop",
     },
   ]
 

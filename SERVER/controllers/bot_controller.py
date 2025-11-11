@@ -1,26 +1,37 @@
 from services.bot_service import InternshalaBot
+from services.oauth_helper import GoogleLoginAutomation
 
 class InternshalaController:
-    def __init__(self, email, password):
+    def __init__(self, email, password=None, login_method='email', user_profile=None):
         self.email = email
         self.password = password
+        self.login_method = login_method
+        self.user_profile = user_profile or {}
         self.bot = None
     
     def _initialize_bot(self):
         """Initialize the bot if not already initialized"""
         if self.bot is None:
-            self.bot = InternshalaBot(self.email, self.password)
+            if self.login_method == 'google':
+                # Initialize bot with Google login
+                self.bot = InternshalaBot(self.email, password=None, use_google_login=True, user_profile=self.user_profile)
+            else:
+                self.bot = InternshalaBot(self.email, self.password, use_google_login=False, user_profile=self.user_profile)
         return self.bot
     
     def process_search(self, keywords, max_applications=5, max_pages=2):
         """Process a search for internships"""
         try:
+            print(f"[BOT_CONTROLLER] Initializing bot for {self.email}")
             bot = self._initialize_bot()
             
             # Login to Internshala
+            print(f"[BOT_CONTROLLER] Attempting login...")
             if not bot.login():
-                return {"success": False, "message": "Login failed"}
+                print(f"[BOT_CONTROLLER] Login failed!")
+                return {"success": False, "message": "Login failed - please check your credentials"}
             
+            print(f"[BOT_CONTROLLER] Login successful!")
             results = {
                 "success": True,
                 "keywords": keywords,
@@ -29,16 +40,22 @@ class InternshalaController:
             }
             
             # Search for internships
+            print(f"[BOT_CONTROLLER] Searching for internships: {keywords}")
             if not bot.search_internships(keywords):
+                print(f"[BOT_CONTROLLER] Search failed!")
                 bot.close()
                 results["success"] = False
                 results["message"] = f"Failed to search for {keywords}"
                 return results
             
+            print(f"[BOT_CONTROLLER] Search successful!")
+            
             # Apply to internships across multiple pages
             for page in range(1, max_pages + 1):
+                print(f"[BOT_CONTROLLER] Processing page {page}/{max_pages}")
                 page_results = []
                 internships = bot.get_all_internships_on_page()
+                print(f"[BOT_CONTROLLER] Found {len(internships)} internships on page {page}")
                 
                 for internship in internships[:max_applications]:
                     application_result = {
@@ -74,16 +91,29 @@ class InternshalaController:
                     break
             
             # Close the browser
+            print(f"[BOT_CONTROLLER] Closing browser. Total applied: {results['total_applied']}")
             bot.close()
             self.bot = None
             
             return results
             
         except Exception as e:
+            print(f"[BOT_CONTROLLER] ERROR: {str(e)}")
+            import traceback
+            traceback.print_exc()
             if self.bot:
-                self.bot.close()
+                try:
+                    self.bot.close()
+                except:
+                    pass
                 self.bot = None
-            raise e
+            # Return error result instead of raising
+            return {
+                "success": False,
+                "message": f"Error during automation: {str(e)}",
+                "applications": [],
+                "total_applied": 0
+            }
     
     def apply_to_specific_internship(self, url):
         """Apply to a specific internship URL"""

@@ -15,21 +15,42 @@ import google.generativeai as genai
 from flask import current_app
 
 class InternshalaBot:
-    def __init__(self, email, password):
+    def __init__(self, email, password=None, use_google_login=False, user_profile=None):
         """Initialize the bot with user credentials"""
         self.email = email
         self.password = password
+        self.use_google_login = use_google_login
+        self.user_profile = user_profile or {}
         
         # Initialize Gemini AI
         api_key = 'AIzaSyD9tAeFXCHe1-sWsvakCvr35xDHBzXAFj4'
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
         
-        if not self.email or not self.password:
-            raise ValueError("Email or password not provided.")
+        if not self.email:
+            raise ValueError("Email not provided.")
+        
+        if not use_google_login and not self.password:
+            raise ValueError("Password not provided for email/password login.")
+        
+        print(f"[BOT] User profile loaded: Phone={bool(self.user_profile.get('phone'))}, Name={bool(self.user_profile.get('fullName'))}")
         
         # Setup Chrome options
         options = Options()
+        
+        # Create a completely separate Chrome profile for automation
+        # This avoids conflicts with your main Chrome browser
+        import tempfile
+        temp_profile = os.path.join(tempfile.gettempdir(), 'InternshalaAutomation')
+        
+        # Create the directory if it doesn't exist
+        os.makedirs(temp_profile, exist_ok=True)
+        
+        options.add_argument(f'--user-data-dir={temp_profile}')
+        print(f"[CHROME] Using dedicated automation profile: {temp_profile}")
+        print(f"[CHROME] This is a SEPARATE Chrome window - keep your main browser open!")
+        print(f"[CHROME] Note: You'll need to login with Google the first time, then it will remember")
+        
         # Uncomment the line below to run in headless mode for production
         # options.add_argument('--headless')
         options.add_argument('--disable-gpu')
@@ -53,31 +74,134 @@ class InternshalaBot:
     def login(self):
         """Login to Internshala"""
         try:
-            print("Logging in to Internshala...")
+            print("[BOT] Navigating to Internshala login page...")
             self.driver.get("https://internshala.com/login")
+            print(f"[BOT] Current URL: {self.driver.current_url}")
             time.sleep(3)  # Wait for page to load
             
+            # Check if already logged in (look for profile container)
+            try:
+                profile_check = self.driver.find_elements(By.CLASS_NAME, "profile_container")
+                if profile_check and len(profile_check) > 0:
+                    print("[BOT] ✓ Already logged in! (Saved session from previous login)")
+                    return True
+            except:
+                pass
+            
+            if self.use_google_login:
+                print("[BOT] Using Google login method...")
+                return self._login_with_google()
+            else:
+                print("[BOT] Using email/password login method...")
+                return self._login_with_email_password()
+                
+        except Exception as e:
+            print(f"[BOT] ERROR during login: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _login_with_email_password(self):
+        """Login using email and password"""
+        try:
+            print("[BOT] Waiting for login form to load...")
             # Wait for login form to load
             email_field = self.wait.until(EC.presence_of_element_located((By.ID, "email")))
             password_field = self.wait.until(EC.presence_of_element_located((By.ID, "password")))
             
+            print("[BOT] Login form found, entering credentials...")
             # Enter email and password with human-like typing
             self._human_like_typing(email_field, self.email)
             self._human_like_typing(password_field, self.password)
             
+            print("[BOT] Clicking login button...")
             # Submit the form
             login_button = self.wait.until(EC.element_to_be_clickable((By.ID, "login_submit")))
             self._human_like_click(login_button)
             
+            print("[BOT] Waiting for login to complete...")
             # Wait for successful login
             self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "profile_container")))
-            print("Login successful!")
+            print("[BOT] ✓ Login successful!")
             return True
         except TimeoutException:
-            print("Login failed. Please check your credentials.")
+            print("[BOT] ✗ Login failed - timeout waiting for profile container")
+            print(f"[BOT] Current URL: {self.driver.current_url}")
             return False
         except Exception as e:
-            print(f"An error occurred during login: {e}")
+            print(f"[BOT] ✗ Login failed with error: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _login_with_google(self):
+        """Login using Google OAuth"""
+        try:
+            print("[BOT] Looking for Google login button...")
+            # Look for Google login button
+            google_button_selectors = [
+                "button.google_login",
+                "a.google_login",
+                "button[data-google-login]",
+                ".btn-google",
+                "button:contains('Google')"
+            ]
+            
+            google_button = None
+            for selector in google_button_selectors:
+                try:
+                    google_button = self.driver.find_element(By.CSS_SELECTOR, selector)
+                    if google_button:
+                        print(f"[BOT] Found Google button with selector: {selector}")
+                        break
+                except:
+                    continue
+            
+            if not google_button:
+                print("[BOT] Standard selectors failed, trying to find by text...")
+                # Try finding by text
+                buttons = self.driver.find_elements(By.TAG_NAME, "button")
+                links = self.driver.find_elements(By.TAG_NAME, "a")
+                all_elements = buttons + links
+                
+                for element in all_elements:
+                    try:
+                        text = element.text.lower()
+                        if "google" in text or "sign in with google" in text:
+                            google_button = element
+                            print(f"[BOT] Found Google button by text: {element.text}")
+                            break
+                    except:
+                        continue
+            
+            if google_button:
+                print("[BOT] Clicking Google login button...")
+                self._human_like_click(google_button)
+                time.sleep(3)
+                
+                print("[BOT] ⏳ Please complete Google authentication in the browser window...")
+                print("[BOT] ⏳ Waiting for login to complete (timeout: 120 seconds)...")
+                print(f"[BOT] Current URL: {self.driver.current_url}")
+                
+                # Wait for successful login (extended timeout for manual Google auth)
+                wait_long = WebDriverWait(self.driver, 120)
+                wait_long.until(EC.presence_of_element_located((By.CLASS_NAME, "profile_container")))
+                print("[BOT] ✓ Google login successful!")
+                return True
+            else:
+                print("[BOT] ✗ Could not find Google login button on the page")
+                print(f"[BOT] Current URL: {self.driver.current_url}")
+                print("[BOT] Page title:", self.driver.title)
+                return False
+                
+        except TimeoutException:
+            print("[BOT] ✗ Google login timed out after 120 seconds")
+            print(f"[BOT] Current URL: {self.driver.current_url}")
+            return False
+        except Exception as e:
+            print(f"[BOT] ✗ Google login failed with error: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def search_internships(self, keywords):
@@ -465,28 +589,49 @@ class InternshalaBot:
         """Return appropriate response based on field placeholder or label"""
         placeholder_lower = placeholder.lower()
         
-        # Common fields with specific responses
+        # Use profile data first, then fallback to defaults
         if "name" in placeholder_lower:
-            return "Dilip S Chakravarthi"
+            return self.user_profile.get('fullName', 'Student')
+        
         elif "email" in placeholder_lower:
-            return self.email
-        elif "phone" in placeholder_lower or "mobile" in placeholder_lower:
-            return "+917975077029"
+            return self.user_profile.get('email', self.email)
+        
+        elif "phone" in placeholder_lower or "mobile" in placeholder_lower or "contact" in placeholder_lower:
+            return self.user_profile.get('phone', '9876543210')
+        
         elif "github" in placeholder_lower:
-            return "https://github.com/DilipSC"
+            return self.user_profile.get('githubUrl', '')
+        
         elif "linkedin" in placeholder_lower:
-            return "https://www.linkedin.com/in/dilip-s-chakravarthi-5656ab209/"
-        elif "portfolio" in placeholder_lower:
-            return "https://dilip-dev.vercel.app/"
-        elif "college" in placeholder_lower or "university" in placeholder_lower:
-            return "Visvesvaraya Technological University"
+            return self.user_profile.get('linkedinUrl', '')
+        
+        elif "portfolio" in placeholder_lower or "website" in placeholder_lower:
+            return self.user_profile.get('portfolioUrl', '')
+        
+        elif "college" in placeholder_lower or "university" in placeholder_lower or "education" in placeholder_lower:
+            return self.user_profile.get('currentEducation', 'B.Tech in Computer Science')
+        
         elif "degree" in placeholder_lower:
-            return "Bachelor of Engineering in Computer Science"
-        elif "graduation" in placeholder_lower:
-            return "2023"
+            return self.user_profile.get('currentEducation', 'B.Tech in Computer Science')
+        
+        elif "graduation" in placeholder_lower or "year" in placeholder_lower:
+            return self.user_profile.get('graduationYear', '2025')
+        
+        elif "city" in placeholder_lower:
+            # Extract just the city name from location
+            location = self.user_profile.get('location', 'Mumbai')
+            # If location has comma, take first part (city)
+            city = location.split(',')[0].strip() if ',' in location else location
+            print(f"[BOT] Filling city field with: {city}")
+            return city
+        
         elif "location" in placeholder_lower or "address" in placeholder_lower:
-            return "Bangalore, Karnataka"
+            return self.user_profile.get('location', 'Mumbai, India')
+        
         elif "cover letter" in placeholder_lower:
+            # Use profile cover letter if available
+            if self.user_profile.get('coverLetter'):
+                return self.user_profile['coverLetter']
             return self._generate_cover_letter_for_role()
         elif "why" in placeholder_lower and "hire" in placeholder_lower:
             return "My strong technical background in Python and experience with computer vision projects make me an ideal candidate for this role. I have hands-on experience with data annotation and preprocessing, which directly aligns with the key responsibilities. I'm passionate about computer vision applications and eager to contribute to your team while continuing to learn and grow in this specialized field."
@@ -494,12 +639,11 @@ class InternshalaBot:
             return "My perfectionism can sometimes lead me to spend extra time refining projects, though I've learned to balance this with meeting deadlines by setting clear milestones. I actively seek feedback to improve and have developed effective time management strategies to ensure high-quality deliverables without unnecessary delays."
         elif "strength" in placeholder_lower:
             return "My key strength is my ability to quickly learn new technologies and apply them to solve real-world problems. This has enabled me to develop proficiency in Python, OpenCV, and Linux environments. Additionally, I'm highly detail-oriented, which is particularly valuable for data annotation and preparation tasks that require precision and consistency."
-        elif "experience" in placeholder_lower:
-            return "I've worked on several computer vision projects where I developed Python scripts for data collection, preprocessing, and annotation. In one project, I created a custom annotation tool that increased labeling efficiency by 30%. I also have experience converting between various annotation formats and integrating preprocessed data into machine learning pipelines."
+        elif "experience" in placeholder_lower or "project" in placeholder_lower:
+            return self.user_profile.get('experience', 'I have completed several academic projects and have hands-on experience with relevant technologies.')
+        
         elif "skill" in placeholder_lower:
-            return "Python, OpenCV, Linux, Data Annotation, Machine Learning, Computer Vision, Data Preprocessing, Image Processing, Object Detection, Deep Learning"
-        elif "project" in placeholder_lower:
-            return "Developed a custom annotation tool for computer vision datasets that improved labeling efficiency by 30%. Created Python scripts for automated data collection and preprocessing. Implemented various image processing algorithms using OpenCV for data enhancement."
+            return self.user_profile.get('skills', 'Python, JavaScript, React, Node.js')
         elif "interest" in placeholder_lower or "passion" in placeholder_lower:
             return "I'm particularly passionate about computer vision and machine learning applications. I enjoy working on projects that involve data annotation, preprocessing, and model training. The opportunity to work on real-world computer vision problems while learning from experienced professionals excites me."
         elif "availability" in placeholder_lower or "start date" in placeholder_lower:
@@ -517,10 +661,12 @@ class InternshalaBot:
         elif "achievement" in placeholder_lower:
             return "Developed a custom annotation tool that improved labeling efficiency by 30%. Created multiple computer vision projects that demonstrate my technical skills. Consistently maintained high academic performance throughout my education."
         elif "hobby" in placeholder_lower or "interest" in placeholder_lower:
-            return "I enjoy working on personal computer vision projects, contributing to open-source projects, and staying updated with the latest developments in AI and machine learning. I also participate in coding competitions and hackathons."
+            return "Reading, coding, and learning new technologies"
+        
         else:
-            # For fields we can't easily identify, use Gemini AI to generate a response
-            return self._generate_answer_for_question(placeholder)
+            # For unknown fields, return empty string to avoid AI-generated long responses
+            print(f"[BOT] Unknown field: {placeholder}, leaving empty")
+            return ""
 
     def _human_like_typing(self, element, text):
         """Type text in a human-like manner"""

@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { Filter, ChevronUp, ChevronDown, Save } from "lucide-react"
 
 export interface PreferencesData {
-  category: string
-  userType: string
-  passingYear: string
-  quickApply: boolean
+  keywords: string
+  maxApplications: number
+  maxPages: number
 }
 
 interface PreferencesSectionProps {
@@ -22,27 +20,26 @@ interface PreferencesSectionProps {
 
 export function PreferencesSectionBase({ onSave, title = "Application Preferences" }: PreferencesSectionProps) {
   const [preferencesOpen, setPreferencesOpen] = useState(true)
-  const [category, setCategory] = useState("")
-  const [userType, setUserType] = useState("fresher")
-  const [passingYear, setPassingYear] = useState("2026")
-  const [quickApply, setQuickApply] = useState(true)
+  const [keywords, setKeywords] = useState("web-development")
+  const [maxApplications, setMaxApplications] = useState(20)
+  const [maxPages, setMaxPages] = useState(2)
 
-  const categoryOptions = [
-  "backend-development",
-  "frontend-development",
-  "Full-Stack-Development",
-  "devops-cloud",
-  "data-science-machine-learning",
-  "machine-learning",
-  "ui-ux",
-  "blockchain"  // Newly added
+  const keywordOptions = [
+    "web-development",
+    "backend-development",
+    "front-end-development",
+    "machine-learning",
+    "data-science",
+    "devops",
+    "ui-ux-design",
+    "blockchain"
   ];
   
   
   // Handle saving application preferences
   const handleSavePreferences = () => {
     // Call the onSave callback with the current preferences
-    onSave({ category, userType, passingYear, quickApply })
+    onSave({ keywords, maxApplications, maxPages })
   }
 
   return (
@@ -64,74 +61,59 @@ export function PreferencesSectionBase({ onSave, title = "Application Preference
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-[#f1eece]">
-                Category
+              <Label htmlFor="keywords" className="text-[#f1eece]">
+                Keywords
               </Label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={keywords} onValueChange={setKeywords}>
                 <SelectTrigger className="bg-[rgba(30,30,35,0.5)] border-[#f1eece]/30 text-[#f1eece]">
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select keywords" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#131318] border-[#f1eece]/30 text-[#f1eece]">
-                  {categoryOptions.map((cat) => (
-                    <SelectItem key={cat} value={cat.toLowerCase().replace(/\s+/g, "_")}>
-                      {cat}
+                  {keywordOptions.map((keyword) => (
+                    <SelectItem key={keyword} value={keyword}>
+                      {keyword}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="userType" className="text-[#f1eece]">
-                User Type
+              <Label htmlFor="maxApplications" className="text-[#f1eece]">
+                Max Applications
               </Label>
-              <Select value={userType} onValueChange={setUserType}>
+              <Select value={maxApplications.toString()} onValueChange={(val) => setMaxApplications(Number(val))}>
                 <SelectTrigger className="bg-[rgba(30,30,35,0.5)] border-[#f1eece]/30 text-[#f1eece]">
-                  <SelectValue placeholder="Select user type" />
+                  <SelectValue placeholder="Select max applications" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#131318] border-[#f1eece]/30 text-[#f1eece]">
-                  <SelectItem value="fresher">Fresher</SelectItem>
-                  <SelectItem value="experienced">Experienced</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="30">30</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="passingYear" className="text-[#f1eece]">
-                Passing Year
+              <Label htmlFor="maxPages" className="text-[#f1eece]">
+                Max Pages
               </Label>
-              <Select value={passingYear} onValueChange={setPassingYear}>
+              <Select value={maxPages.toString()} onValueChange={(val) => setMaxPages(Number(val))}>
                 <SelectTrigger className="bg-[rgba(30,30,35,0.5)] border-[#f1eece]/30 text-[#f1eece]">
-                  <SelectValue placeholder="Select passing year" />
+                  <SelectValue placeholder="Select max pages" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#131318] border-[#f1eece]/30 text-[#f1eece]">
-                  <SelectItem value="2024">2024</SelectItem>
-                  <SelectItem value="2025">2025</SelectItem>
-                  <SelectItem value="2026">2026</SelectItem>
-                  <SelectItem value="2027">2027</SelectItem>
-                  <SelectItem value="2028">2028</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="quickApply" className="text-[#f1eece]">
-                Quick Apply
-              </Label>
-              <div className="flex items-center space-x-2 pt-2">
-                <Switch
-                  id="quickApply"
-                  checked={quickApply}
-                  onCheckedChange={setQuickApply}
-                  className="data-[state=checked]:bg-[#a90519]"
-                />
-                <Label htmlFor="quickApply" className="text-[#f1eece]/70">
-                  {quickApply ? "Enabled" : "Disabled"}
-                </Label>
-              </div>
             </div>
           </div>
 

@@ -7,10 +7,11 @@ from routes.internship_routes import internship_blueprint
 from routes.auth import auth_blueprint
 from routes.resumeRoute import main_blueprint
 from routes.linkedin_routes import linkedin_bp
-from controllers.unstop_controller import scraper_bp
 from routes.internshala_routes import internshala_bp
 from routes.dashboard_routes import dashboard_blueprint
 from routes.homepage_routes import homepage_blueprint
+from routes.admin_routes import admin_blueprint
+from routes.automation_routes import automation_blueprint
 from views.api import internship_blueprint as api_internship_blueprint
 
 # Load environment variables
@@ -39,9 +40,10 @@ def create_app():
     app.register_blueprint(internship_blueprint, url_prefix='/api/internships')
     app.register_blueprint(auth_blueprint, url_prefix='/user')
     app.register_blueprint(dashboard_blueprint, url_prefix='/api')
+    app.register_blueprint(admin_blueprint, url_prefix='/admin')
     app.register_blueprint(linkedin_bp)
     app.register_blueprint(internshala_bp)
-    app.register_blueprint(scraper_bp, url_prefix='/api/v1')
+    app.register_blueprint(automation_blueprint, url_prefix='/api/v1/internships')
     app.register_blueprint(api_internship_blueprint, url_prefix='/api/v1/internships')
 
     return app

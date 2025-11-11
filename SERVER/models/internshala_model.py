@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from bson import ObjectId
 import os
 from dotenv import load_dotenv
@@ -7,11 +8,39 @@ load_dotenv()
 
 class InternshalaInternshipModel:
     def __init__(self):
-        mongo_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
         db_name = os.getenv('DB_NAME', 'resume_processor_db')
         collection_name = os.getenv('INTERNSHALA_COLLECTION_NAME', 'internshala')
-
-        self.client = MongoClient(mongo_uri)
+        
+        # Try Atlas first, then fallback to local
+        atlas_uri = os.getenv('MONGO_URI_ATLAS')
+        local_uri = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+        
+        self.client = None
+        
+        # Try Atlas connection first
+        if atlas_uri:
+            try:
+                print("Attempting to connect to MongoDB Atlas...")
+                self.client = MongoClient(atlas_uri, serverSelectionTimeoutMS=5000)
+                # Test the connection
+                self.client.admin.command('ping')
+                print("Successfully connected to MongoDB Atlas")
+            except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+                print(f"Atlas connection failed: {e}")
+                self.client = None
+        
+        # Fallback to local MongoDB
+        if not self.client:
+            try:
+                print("Attempting to connect to local MongoDB...")
+                self.client = MongoClient(local_uri, serverSelectionTimeoutMS=5000)
+                # Test the connection
+                self.client.admin.command('ping')
+                print("Successfully connected to local MongoDB")
+            except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+                print(f"Local MongoDB connection failed: {e}")
+                raise Exception("Could not connect to any MongoDB instance. Please ensure MongoDB is running locally or Atlas is accessible.")
+        
         self.db = self.client[db_name]
         self.collection = self.db[collection_name]
 

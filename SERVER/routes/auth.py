@@ -356,6 +356,65 @@ def get_user_applications():
         print(f"Get applications error: {str(e)}")
         return jsonify({'applications': [], 'count': 0}), 200
 
+@auth_blueprint.route('/application-profile', methods=['GET'])
+@jwt_required
+def get_application_profile():
+    """Get user's application profile"""
+    try:
+        user_data = g.user
+        db = get_db_connection()
+        profiles_collection = db.application_profiles
+        
+        # Fetch profile
+        profile = profiles_collection.find_one({'user_email': user_data['email']}, {'_id': 0})
+        
+        if profile:
+            return jsonify({'profile': profile.get('profile', {})}), 200
+        else:
+            return jsonify({'profile': None}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@auth_blueprint.route('/application-profile', methods=['POST'])
+@jwt_required
+def save_application_profile():
+    """Save user's application profile"""
+    try:
+        user_data = g.user
+        data = request.get_json()
+        
+        if not data or 'profile' not in data:
+            return jsonify({'message': 'No profile data provided'}), 400
+        
+        profile_data = data['profile']
+        
+        # Validate required fields
+        if not profile_data.get('fullName') or not profile_data.get('email') or not profile_data.get('phone'):
+            return jsonify({'message': 'Name, email, and phone are required'}), 400
+        
+        db = get_db_connection()
+        profiles_collection = db.application_profiles
+        
+        # Upsert profile
+        result = profiles_collection.update_one(
+            {'user_email': user_data['email']},
+            {
+                '$set': {
+                    'user_email': user_data['email'],
+                    'profile': profile_data,
+                    'updated_at': datetime.datetime.now(datetime.timezone.utc)
+                }
+            },
+            upsert=True
+        )
+        
+        return jsonify({'message': 'Profile saved successfully'}), 200
+        
+    except Exception as e:
+        print(f"Save profile error: {str(e)}")
+        return jsonify({'message': 'Internal server error'}), 500
+
 @auth_blueprint.route('/delete', methods=['DELETE'])
 @jwt_required
 def delete_user():
@@ -378,6 +437,9 @@ def delete_user():
         
         internship_applications = db.internship_applications
         internship_applications.delete_many({'user_email': user_data['email']})
+        
+        application_profiles = db.application_profiles
+        application_profiles.delete_many({'user_email': user_data['email']})
         
         return jsonify({'message': 'User account deleted successfully'}), 200
         

@@ -255,8 +255,11 @@ class InternshalaScraper:
         except Exception as e:
             error_msg = f"Internshala scraping error: {str(e)}"
             print(error_msg)
-            return {'count': 0, 'message': error_msg}
+            raise Exception(error_msg)
             
         finally:
-            if driver:
-                driver.quit()
+            try:
+                if driver:
+                    driver.quit()
+            except Exception as e:
+                print(f"Error closing driver: {str(e)}")

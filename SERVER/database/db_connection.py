@@ -74,7 +74,8 @@ def get_db_connection():
     """Create a connection to the MongoDB Cloud database"""
     try:
         # Get MongoDB Cloud connection string from environment
-        mongo_uri = os.environ.get('MONGO_URI')
+        # Try Atlas first, fallback to local
+        mongo_uri = os.environ.get('MONGO_URI_ATLAS') or os.environ.get('MONGO_URI')
         db_name = os.environ.get('DB_NAME', 'ApplyAsYouGo')
         
         if not mongo_uri:

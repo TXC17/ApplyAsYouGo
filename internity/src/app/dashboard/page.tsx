@@ -25,6 +25,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Toaster } from "sonner"
 import SmartScraperCredentialsForm from "./components/smart-scraper-credentials-form"
+import ApplicationProfileForm from "./components/application-profile-form"
 import { useAuth } from "@/app/context/context"
 import { useRouter } from "next/navigation"
 
@@ -45,12 +46,10 @@ export default function Dashboard() {
   // Loading states for each platform
   const [isLinkedInLoading, setIsLinkedInLoading] = useState(false)
   const [isInternshalaLoading, setIsInternshalaLoading] = useState(false)
-  const [isUnstopLoading, setIsUnstopLoading] = useState(false)
 
   // Internship data for each platform
   const [linkedInInternships, setLinkedInInternships] = useState<LinkedInInternship[]>([])
   const [internshalaInternships, setInternshalaInternships] = useState<InternshalaInternship[]>([])
-  const [unstopInternships, setUnstopInternships] = useState<UnstopInternship[]>([])
 
   // Use real user data from authentication
   const userData = user || {
@@ -60,6 +59,34 @@ export default function Dashboard() {
 
   // User applications - fetched from database
   const [applications, setApplications] = useState<any[]>([])
+  
+  // Admin status check
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!isLoggedIn || !AuthorizationToken) return
+
+      try {
+        const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/admin/check-admin', {
+          headers: {
+            'Authorization': AuthorizationToken
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setIsAdmin(data.isAdmin || false)
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error)
+        setIsAdmin(false)
+      }
+    }
+
+    checkAdminStatus()
+  }, [isLoggedIn, AuthorizationToken])
 
   // Fetch user applications on component mount
   useEffect(() => {
@@ -90,7 +117,6 @@ export default function Dashboard() {
   // Error states for scrapers
   const [linkedInError, setLinkedInError] = useState<string | null>(null)
   const [internshalaError, setInternshalaError] = useState<string | null>(null)
-  const [unstopError, setUnstopError] = useState<string | null>(null)
 
 
 
@@ -121,40 +147,59 @@ export default function Dashboard() {
     return () => clearInterval(intervalId) // Cleanup interval on component unmount
   }, [])
 
-  // Load initial data - start with empty arrays for new users
+  // Load initial data from backend
   useEffect(() => {
-    // Initialize with empty arrays - users need to scrape to get data
-    setLinkedInInternships([])
-    setInternshalaInternships([])
-    setUnstopInternships([])
-
-    // MongoDB integration would look like this (commented out as requested)
-    /*
     const fetchInternships = async () => {
       try {
-        // Connect to MongoDB
-        // const client = await connectToMongoDB();
-        // const db = client.db("resume_platform");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
         
-        // Fetch internships for each platform
-        // const linkedInData = await db.collection("internships").find({ source: "linkedin" }).toArray();
-        // const internshalaData = await db.collection("internships").find({ source: "internshala" }).toArray();
-        // const unstopData = await db.collection("internships").find({ source: "unstop" }).toArray();
+        // Fetch LinkedIn internships
+        try {
+          const linkedInResponse = await fetch(`${apiUrl}/api/linkedin/list`)
+          const linkedInData = await linkedInResponse.json()
+          if (linkedInData.data && linkedInData.data.length > 0) {
+            const transformedLinkedIn = linkedInData.data.map((item: any) => ({
+              id: item._id || `linkedin-${Date.now()}-${Math.random()}`,
+              title: item.title || 'Internship Position',
+              company: item.company || 'Company',
+              location: item.location || 'Location not specified',
+              duration: '3-6 Months',
+              stipend: 'Competitive',
+              category: item.category || 'internship'
+            }))
+            setLinkedInInternships(transformedLinkedIn)
+          }
+        } catch (error) {
+          console.error("Error fetching LinkedIn internships:", error)
+        }
         
-        // Update state with fetched data
-        // setLinkedInInternships(linkedInData);
-        // setInternshalaInternships(internshalaData);
-        // setUnstopInternships(unstopData);
-        
-        // Close MongoDB connection
-        // await client.close();
+        // Fetch Internshala internships
+        try {
+          const internshalaResponse = await fetch(`${apiUrl}/api/internshala/list`)
+          const internshalaData = await internshalaResponse.json()
+          if (internshalaData.data && internshalaData.data.length > 0) {
+            const transformedInternshala = internshalaData.data.map((item: any) => ({
+              id: item._id || `internshala-${Date.now()}-${Math.random()}`,
+              title: item.title || 'Internship Position',
+              company: item.company || 'Company',
+              applicants: item.applicants || 'N/A',
+              days_left: item.days_left || 'N/A',
+              skills: item.skills || [],
+              category: item.category || 'internship',
+              scraped_at: new Date().toISOString(),
+              url: item.apply_link
+            }))
+            setInternshalaInternships(transformedInternshala)
+          }
+        } catch (error) {
+          console.error("Error fetching Internshala internships:", error)
+        }
       } catch (error) {
-        console.error("Error fetching internships:", error);
+        console.error("Error fetching internships:", error)
       }
-    };
+    }
     
-    fetchInternships();
-    */
+    fetchInternships()
   }, [])
 
   const handleAgentToggle = (checked: boolean) => {
@@ -205,7 +250,16 @@ export default function Dashboard() {
     setIsLinkedInLoading(true)
     setLinkedInError(null)
 
+    let timeoutId: NodeJS.Timeout | null = null
+    
     try {
+      // Create an AbortController for timeout
+      const controller = new AbortController()
+      timeoutId = setTimeout(() => {
+        console.log('LinkedIn scraping timeout reached')
+        controller.abort()
+      }, 180000) // 180 second timeout (3 minutes)
+
       const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/linkedin/scrape', {
         method: 'POST',
         headers: {
@@ -217,7 +271,10 @@ export default function Dashboard() {
           passing_year: '2027',
           quick_apply: true
         }),
+        signal: controller.signal
       })
+
+      if (timeoutId) clearTimeout(timeoutId)
 
       const data = await response.json()
 
@@ -245,11 +302,18 @@ export default function Dashboard() {
         setLinkedInError(data.message || 'Failed to scrape LinkedIn internships')
         setLinkedInInternships([])
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error scraping LinkedIn:', error)
-      setLinkedInError('Network error. Please check if the backend is running.')
+      if (error.name === 'AbortError') {
+        setLinkedInError('LinkedIn scraping timed out. LinkedIn requires authentication and may block automated scraping. Consider using LinkedIn API or manual application.')
+      } else if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        setLinkedInError('Cannot connect to backend server. Please ensure the backend is running on http://localhost:5000')
+      } else {
+        setLinkedInError(error.message || 'Network error. Please check if the backend is running.')
+      }
       setLinkedInInternships([])
     } finally {
+      if (timeoutId) clearTimeout(timeoutId)
       setIsLinkedInLoading(false)
     }
   }
@@ -258,7 +322,16 @@ export default function Dashboard() {
     setIsInternshalaLoading(true)
     setInternshalaError(null)
 
+    let timeoutId: NodeJS.Timeout | null = null
+    
     try {
+      // Create an AbortController for timeout
+      const controller = new AbortController()
+      timeoutId = setTimeout(() => {
+        console.log('Internshala scraping timeout reached')
+        controller.abort()
+      }, 180000) // 180 second timeout (3 minutes)
+
       const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/internshala/scrape', {
         method: 'POST',
         headers: {
@@ -270,16 +343,19 @@ export default function Dashboard() {
           passing_year: '2027',
           quick_apply: true
         }),
+        signal: controller.signal
       })
+
+      if (timeoutId) clearTimeout(timeoutId)
 
       const data = await response.json()
 
-      if (response.ok && data.count > 0) {
+      if (response.ok) {
         // Fetch the scraped data from the list endpoint
         const listResponse = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/internshala/list')
         const listData = await listResponse.json()
 
-        if (listResponse.ok && listData.data) {
+        if (listResponse.ok && listData.data && listData.data.length > 0) {
           const transformedData = listData.data.map((item: any) => ({
             id: item._id || `internshala-${Date.now()}-${Math.random()}`,
             title: item.title || 'Internship Position',
@@ -300,68 +376,23 @@ export default function Dashboard() {
         setInternshalaError(data.message || 'Failed to scrape Internshala internships')
         setInternshalaInternships([])
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error scraping Internshala:', error)
-      setInternshalaError('Network error. Please check if the backend is running.')
+      if (error.name === 'AbortError') {
+        setInternshalaError('Request timed out. The scraping is taking longer than expected. Please try again.')
+      } else if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        setInternshalaError('Cannot connect to backend server. Please ensure the backend is running on http://localhost:5000')
+      } else {
+        setInternshalaError(error.message || 'Network error. Please check if the backend is running.')
+      }
       setInternshalaInternships([])
     } finally {
+      if (timeoutId) clearTimeout(timeoutId)
       setIsInternshalaLoading(false)
     }
   }
 
-  const handleScrapeUnstop = async () => {
-    setIsUnstopLoading(true)
-    setUnstopError(null)
 
-    try {
-      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/v1/scrape', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          category: 'internships',
-          quick_apply: true,
-          usertype: 'student'
-        }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.status === 'success') {
-        // Fetch the scraped internships from the database
-        const internshipsResponse = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api/v1/internships?limit=10')
-        const internshipsData = await internshipsResponse.json()
-
-        if (internshipsResponse.ok && internshipsData.internships && internshipsData.internships.length > 0) {
-          // Transform the data to match our frontend format
-          const transformedInternships = internshipsData.internships.map((internship: any) => ({
-            id: internship.opp_id || `unstop-${Date.now()}-${Math.random()}`,
-            title: internship.title || 'Internship Position',
-            company: internship.company || 'Company',
-            location: internship.location || 'Remote',
-            duration: '3-6 Months',
-            stipend: 'Competitive',
-            category: 'internship'
-          }))
-
-          setUnstopInternships(transformedInternships)
-        } else {
-          setUnstopError('No internships found. Try scraping again.')
-          setUnstopInternships([])
-        }
-      } else {
-        setUnstopError(data.message || 'Failed to scrape Unstop internships')
-        setUnstopInternships([])
-      }
-    } catch (error) {
-      console.error('Error scraping Unstop:', error)
-      setUnstopError('Network error. Please check if the backend is running.')
-      setUnstopInternships([])
-    } finally {
-      setIsUnstopLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-[rgba(8,8,8,0.7)] to-[rgba(10,10,10,0.7)] text-[#f1eece]">
@@ -411,6 +442,15 @@ export default function Dashboard() {
                     <Settings size={18} />
                     <span>Resume Builder</span>
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin/contact-messages"
+                      className="flex items-center gap-3 p-3 rounded-lg text-[#f1eece]/70 hover:bg-[rgba(30,30,35,0.5)] transition-colors border border-purple-500/30"
+                    >
+                      <Settings size={18} />
+                      <span>Admin Panel</span>
+                    </Link>
+                  )}
                   {/* <button className="w-full flex items-center gap-3 p-3 rounded-lg text-[#f1eece]/70 hover:bg-[rgba(30,30,35,0.5)] transition-colors">
                     <Bell size={18} />
                     <span>Notifications</span>
@@ -528,6 +568,11 @@ export default function Dashboard() {
               </div>
             </Card>
 
+            {/* Application Profile Form */}
+            <div className="mb-6">
+              <ApplicationProfileForm />
+            </div>
+
             {/* Smart Scraper Credentials Form */}
             <div className="mb-6">
               <SmartScraperCredentialsForm />
@@ -539,7 +584,7 @@ export default function Dashboard() {
                 <h2 className="text-2xl font-bold text-[#f1eece] mb-6">Internship Sources</h2>
 
                 <Tabs defaultValue="linkedin" value={activeInternshipTab} onValueChange={setActiveInternshipTab}>
-                  <TabsList className="grid grid-cols-3 mb-6 bg-[rgba(30,30,35,0.5)]">
+                  <TabsList className="grid grid-cols-2 mb-6 bg-[rgba(30,30,35,0.5)]">
                     <TabsTrigger
                       value="linkedin"
                       className="data-[state=active]:bg-[#f1eece] data-[state=active]:text-[#131318] text-[#f1eece]/80"
@@ -551,12 +596,6 @@ export default function Dashboard() {
                       className="data-[state=active]:bg-[#f1eece] data-[state=active]:text-[#131318] text-[#f1eece]/80"
                     >
                       Internshala
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="unstop"
-                      className="data-[state=active]:bg-[#f1eece] data-[state=active]:text-[#131318] text-[#f1eece]/80"
-                    >
-                      Unstop
                     </TabsTrigger>
                   </TabsList>
 
@@ -740,91 +779,7 @@ export default function Dashboard() {
                     )}
                   </TabsContent>
 
-                  {/* Unstop Tab */}
-                  <TabsContent value="unstop">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-[#f1eece]">Unstop Internships</h3>
-                      <Button
-                        onClick={handleScrapeUnstop}
-                        disabled={isUnstopLoading}
-                        className="bg-gradient-to-r from-[#7d0d1b] to-[#a90519] hover:from-[#a90519] hover:to-[#ff102a] text-[#f1eece] border-none"
-                      >
-                        {isUnstopLoading ? (
-                          <>
-                            <div className="animate-spin h-4 w-4 mr-2 border-2 border-[#f1eece] border-t-transparent rounded-full"></div>
-                            Scraping...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw size={16} className="mr-2" />
-                            Scrape Now
-                          </>
-                        )}
-                      </Button>
-                    </div>
 
-                    {isUnstopLoading ? (
-                      <div className="flex justify-center items-center py-12">
-                        <div className="animate-spin h-6 w-6 border-2 border-[#a90519] border-t-transparent rounded-full"></div>
-                        <span className="ml-3 text-[#f1eece]/70">Scraping Unstop internships...</span>
-                      </div>
-                    ) : unstopError ? (
-                      <div className="text-center py-12 text-red-400">
-                        <p className="text-lg font-medium mb-2">Scraping Failed</p>
-                        <p className="text-sm">{unstopError}</p>
-                        <button
-                          onClick={handleScrapeUnstop}
-                          className="mt-4 px-4 py-2 bg-[#a90519] hover:bg-[#ff102a] text-[#f1eece] rounded-lg transition-colors"
-                        >
-                          Try Again
-                        </button>
-                      </div>
-                    ) : unstopInternships.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {unstopInternships.map((internship) => (
-                          <motion.div
-                            key={internship.id}
-                            className="bg-[rgba(19,19,24,0.85)] text-[#f1eece] border border-[#f1eece]/20 rounded-xl p-4 shadow transition hover:scale-[1.01]"
-                            whileHover={{ scale: 1.01 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <div className="flex flex-col h-full">
-                              <h4 className="text-lg font-semibold text-[#f1eece]">{internship.title}</h4>
-                              <div className="flex items-center text-[#f1eece]/70 mt-1">
-                                <Building size={16} className="mr-1" />
-                                {internship.company}
-                              </div>
-
-                              <div className="grid grid-cols-1 gap-2 mt-3">
-                                <div className="flex items-center text-[#f1eece]/70 text-sm">
-                                  <MapPin size={14} className="mr-1" />
-                                  {internship.location}
-                                </div>
-                                <div className="flex items-center text-[#f1eece]/70 text-sm">
-                                  <Clock size={14} className="mr-1" />
-                                  {internship.duration}
-                                </div>
-                                <div className="flex items-center text-[#f1eece]/70 text-sm">
-                                  <DollarSign size={14} className="mr-1" />
-                                  {internship.stipend}
-                                </div>
-                              </div>
-
-                              <div className="mt-auto pt-3">
-                                <Badge className="bg-[#f1eece]/10 text-[#f1eece]/90 border border-[#f1eece]/20">
-                                  {internship.category}
-                                </Badge>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-[#f1eece]/50">
-                        <p>No Unstop internships found. Click "Scrape Now" to fetch the latest listings.</p>
-                      </div>
-                    )}
-                  </TabsContent>
                 </Tabs>
               </div>
             </Card>
@@ -858,12 +813,3 @@ interface InternshalaInternship {
   url: string | null
 }
 
-interface UnstopInternship {
-  id: string
-  title: string
-  company: string
-  location: string
-  duration: string
-  stipend: string
-  category: string
-}

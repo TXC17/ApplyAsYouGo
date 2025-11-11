@@ -11,13 +11,13 @@ export default function AboutPage() {
     {
       name: 'KESHAV KUMAR A',
       role: 'Founder',
-      traits: ['+ Goofy', '+ Demanding', '+ Dedicated'],
+      traits: ['+ Passionate', '+ Demanding', '+ Dedicated'],
       linkedIn: "https://www.linkedin.com/in/keshav-kumar-8bb567339/",
     },
     {
       name: 'Dilipraj M',
       role: 'Co-Founder',
-      traits: ['+ Unconventional', '+ Self-reliant', '+ Versatile'],
+      traits: ['+ Selfless', '+ Dominant', '+ Versatile'],
       linkedIn: "https://www.linkedin.com/in/dilipraj-m-b4a223379?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app",
     },
   ]
